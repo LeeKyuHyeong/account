@@ -1,0 +1,185 @@
+# Account-App TODO
+
+작업 백로그 — 우선순위 + 현재 페이즈 기반.
+
+- **P0**: 현재 페이즈(Week 1) 내 필수 — 지금 진행
+- **P1**: 다음 페이즈(Week 2~6) — MVP 완성까지
+- **P2**: MVP 이후 (v1.1 / v1.5 / v2) — 우선순위 낮음
+- 상세 컨텍스트는 [`docs/account.md`](docs/account.md) 해당 절 참조. 본 파일은 "체크리스트 + 우선순위"만 유지.
+
+---
+
+## 진행 현황 (요약)
+
+```
+Week 1: ▓░░░░░░  Task 1/6 완료
+Week 2-6:  대기
+v1.1+:     대기
+```
+
+---
+
+## P0 — Week 1 (현재 페이즈)
+
+목표: 멀티 모듈 + DB + 인증 + 가구 격리 검증까지 완료. **격리 검증 통합 테스트가 본 페이즈의 가장 중요한 산출물**.
+
+### Task 1. Gradle 멀티 모듈 루트 셋업 ✅
+- [x] `settings.gradle.kts` (4개 모듈 include)
+- [x] 루트 `build.gradle.kts` (Java 21 toolchain, Spring Boot BOM)
+- [x] 각 모듈 `build.gradle.kts` + 의존성 그래프 (api→core, batch→core, ai 독립)
+- [x] Gradle Wrapper
+- [x] `AccountApiApplication` 기동 확인 (DB 미연결 상태)
+
+### Task 2. MariaDB Docker + Flyway 스키마  ← **다음 진행**
+- [ ] 루트 `docker-compose.yml` (MariaDB 11.x, 포트 3306, volume `./data/mariadb`)
+- [ ] `account-core/src/main/resources/db/migration/V1__init_schema.sql`
+  - `docs/account.md` §6.1의 13개 테이블
+  - 인덱스 명시대로
+  - FK는 `ON DELETE RESTRICT` 기본
+- [ ] `V2__seed_dev.sql` — 가구 2개(`우리집`, `테스트가구`), 사용자 4명, 카테고리(22 + 5, 격리 검증용 의도적 차이)
+- [ ] `account-api/application.yml` — Flyway + JPA 활성화, 현재 비활성된 DataSourceAutoConfiguration 제외 블록 제거
+- [ ] Acceptance: `./gradlew :account-api:bootRun` 시 V1/V2 자동 적용, `SHOW TABLES;` 13개 확인
+- 커밋: `feat(core): add flyway migrations with seed data for two households`
+
+### Task 3. JPA Entity + Repository
+- [ ] `account-core/.../entity/` 하위 Entity 12개
+  - `User`, `Household`, `HouseholdMember`, `Category`, `Transaction`, `TransactionHistory`, `Receipt`, `MerchantHistory`, `MonthlySummary`, `Asset`, `Liability`, `WeddingItem`
+- [ ] enum: `CategoryType`, `TransactionStatus`, `HouseholdRole`, `PlanType`, `ChangeType`
+- [ ] Lombok: `@Getter`, `@NoArgsConstructor(access=PROTECTED)`, `@AllArgsConstructor(access=PRIVATE)`, `@Builder` (Setter 금지 — §10.1)
+- [ ] Repository 인터페이스 (`JpaRepository` 상속, raw query 금지 — §10.5)
+- [ ] 본 단계에서 `@Filter` 활성화는 **하지 않음** (Task 4에서)
+- 커밋: `feat(core): add JPA entities and repositories for all domain tables`
+
+### Task 4. HouseholdContext + Hibernate Filter — 본 페이즈 핵심
+- [ ] `account-core/.../tenant/HouseholdContext.java` (ThreadLocal<Long>)
+- [ ] 모든 도메인 Entity에 `@FilterDef` + `@Filter("householdFilter", condition="household_id = :currentHouseholdId")`
+- [ ] `account-api/.../filter/HouseholdContextFilter.java`
+  - 일시적으로 `X-Household-Id` 헤더 사용 (Task 5에서 JWT로 교체)
+  - `HouseholdContext.set` + `Session.enableFilter(...)`
+  - finally 블록에서 clear
+- [ ] **격리 검증 통합 테스트** (Testcontainers + MariaDB)
+  - `X-Household-Id: 1` → 가구#1 카테고리만 (22개)
+  - `X-Household-Id: 2` → 가구#2 카테고리만 (5개)
+  - 두 결과 ID 교집합 0 검증
+- [ ] Acceptance: 위 테스트 통과 — **이 테스트는 절대 빠뜨리지 말 것**
+- 커밋: `feat(core): add multi-tenant isolation via HouseholdContext + Hibernate filter`
+
+### Task 5. JWT 인증 셋업
+- [ ] `JwtTokenProvider` (access 15분 / refresh 30일, 클레임: `sub`/`household_id`/`role`)
+- [ ] secret은 `application-secret.yml` (`account.jwt.secret`) — 커밋 금지
+- [ ] `JwtAuthenticationFilter` (`OncePerRequestFilter`) — 헤더/쿠키에서 JWT 추출 → `HouseholdContext.set` → finally clear
+- [ ] `SecurityConfig` — `/api/auth/**` 외 인증 필수
+- [ ] `AuthController`
+  - `POST /api/auth/login` (BCrypt, 첫 번째 가구 자동 선택)
+  - `POST /api/auth/refresh`
+  - `GET /api/auth/me`
+- [ ] Task 4의 임시 `X-Household-Id` 헤더 처리 제거 → JWT 클레임 사용
+- [ ] Task 4의 격리 테스트를 JWT 기반으로 수정
+- [ ] Acceptance: 사용자#1 토큰으로 가구#2 자원 접근 시 빈 결과 또는 404
+- 커밋: `feat(api): add JWT authentication with household_id claim`
+
+### Task 6. account-ai 모듈 멀티 모듈 통합
+- [ ] `account-core`에 `JpaMerchantHistoryProvider implements MerchantHistoryProvider`
+- [ ] `account-ai`의 `ReceiptController` → `account-api`로 이전 (`@RestController`는 api 모듈)
+- [ ] `account-ai`에서 `X-Household-Id` 헤더 처리 제거 → JWT 클레임 사용
+- [ ] `account-api/build.gradle.kts`에 `implementation(project(":account-ai"))` 추가
+- [ ] 영수증 업로드 → DRAFT 거래 자동 생성 흐름
+- [ ] 이미지 저장 경로: 개발 `./data/receipts/{hid}/{yyyy}/{mm}/{uuid}.jpg`, 운영 `/mnt/data/receipts/...`
+- [ ] 통합 테스트: 업로드 → DRAFT 거래 → 본인 가구로만 조회
+- [ ] Acceptance: `curl -X POST .../api/receipts -F "image=@..."` 실제 분석 + DB 저장 (Claude API 키 있는 환경)
+- 커밋: `feat(api): integrate account-ai with multi-module structure`
+
+### Week 1 완료 기준
+- [ ] `./gradlew build` 성공 (전 모듈)
+- [ ] `docker-compose up -d` → MariaDB 기동 + Flyway 자동 적용
+- [ ] `./gradlew :account-api:bootRun` 기동 + `/api/auth/login` 호출 가능
+- [ ] **격리 검증 통합 테스트 통과** (가장 중요)
+- [ ] `curl` 영수증 업로드 → Claude 분석 → DRAFT 거래 → 본인 가구로만 조회
+- [ ] 시크릿 0건 커밋 (§10.2 grep 검증)
+
+---
+
+## P1 — Week 2~6 (MVP 완성까지)
+
+### Week 2~3. Flutter 셋업 + 거래 입력
+- [ ] `flutter-app` 모듈 추가 (`flutter create flutter_app`)
+- [ ] Riverpod + go_router + dio 셋업
+- [ ] 로그인 화면 + JWT 자동 갱신 (`flutter_secure_storage`)
+- [ ] 거래 목록 화면 + 필터/페이징
+- [ ] 수동 거래 입력 폼 (`reactive_forms`)
+
+### Week 4. 카메라 + 영수증 촬영
+- [ ] `image_picker` 통합
+- [ ] 클라이언트 측 1280px 압축 (`image` 라이브러리)
+- [ ] 업로드 → 분석 결과 → 컨펌 화면 흐름
+- [ ] 신뢰도 분기 UI
+  - `confidence ≥ 0.8`: 자동 확정
+  - `0.5~0.8`: 컨펌 요청
+  - `< 0.5`: 수동 카테고리 선택
+
+### Week 5. 학습 + 대시보드
+- [ ] `merchant_history` 학습 피드백 루프 (사용자 수정 시 UPSERT)
+- [ ] 홈 화면 — 이번 달 카드 (수입/지출/잉여금)
+- [ ] 카메라 FAB + 앱 아이콘 Quick Action
+- [ ] `MonthlySummary` 사전 계산 배치 잡 (`account-batch`)
+- [ ] 월별 집계 API + 카테고리별 추이 차트 (`fl_chart`)
+
+### Week 6. 배포
+- [ ] `account.kyuhyeong.com` 서브도메인 + nginx server block
+- [ ] Let's Encrypt 인증서 발급 (기존 certbot 활용)
+- [ ] Docker Compose 운영 stack 구성
+- [ ] GitHub Actions CI/CD (KH Shop 패턴 재활용)
+- [ ] TestFlight 빌드 + 부부 단말 설치
+- [ ] Android APK Internal Track
+
+---
+
+## P2 — v1.1 (MVP 후 점진)
+- [ ] 순자산 화면 (자산/부채 + 월별 추이)
+- [ ] 결혼 일시 지출 화면 (예산 vs 실제, 부모 지원 분리)
+- [ ] FCM 푸시 (silent push 동기화 + 알림) — Firebase Admin SDK
+- [ ] 예산 초과 경고
+- [ ] 영수증 단계적 압축/삭제 배치 잡 (1년: 800px/60%, 5년: 삭제)
+- [ ] 백업 자동화 (MariaDB 일일 덤프, Cloudflare R2 주 1회)
+
+## P2 — v1.5 (가구 확장 시)
+- [ ] 가구 초대 플로우 (이메일)
+- [ ] OWNER/MEMBER 역할 차등 (예산 수정은 OWNER만)
+- [ ] 회원가입 화면
+- [ ] 가구별 카테고리 커스터마이징 UI
+- [ ] `POST /api/auth/switch-household` (다중 가구 소속)
+- [ ] 탈퇴/데이터 삭제 자동 배치
+
+## P2 — v2 (장기 / 사업화 검토)
+- [ ] 카드 PDF 명세서 일괄 분류
+- [ ] 음성 입력 거래
+- [ ] 자산관리 엑셀 통합 (투자 모듈)
+- [ ] 연말정산 시뮬레이터
+- [ ] 구독 티어 (PERSONAL / FAMILY / PRO) — In-App Purchase
+- [ ] 개인정보처리방침 본격 정비
+- [ ] Sonnet 4.5 → Haiku 4.5 A/B 정확도 비교 후 다운그레이드 판단
+
+---
+
+## 상시 / 가로지르는 항목
+
+### 보안 / 시크릿 (모든 커밋 전)
+- [ ] `git diff --cached | grep -iE "sk-ant|password.*=.*[a-zA-Z0-9]{8}|secret.*=.*[a-zA-Z0-9]{16}"` 결과 비어있는지 확인
+- [ ] `application-secret.yml` 미커밋 확인
+- [ ] `local.properties` 미커밋 확인 (Android SDK 경로 노출 방지)
+
+### 테스트 정책 (§10.4)
+- [ ] DB 통합 테스트는 Testcontainers (H2 금지)
+- [ ] 격리 검증 테스트는 모든 도메인 Repository에 대해 작성
+- [ ] AssertJ 사용
+- [ ] 각 테스트 자체 시드, 다른 테스트의 부산물 의존 금지
+
+### 외부 의존 / 사용자 행동 필요 항목
+- [ ] Anthropic Console에서 Claude API 키 발급 + 월 한도 $10 설정 (사용자)
+- [ ] Apple Developer 가입 ($99/년, Week 6 이전) (사용자)
+- [ ] VPS에 `account.kyuhyeong.com` DNS A 레코드 추가 (Week 6) (사용자)
+- [ ] GitHub Repo Settings → Secrets에 CI/CD용 시크릿 등록 (Week 6) (사용자)
+
+---
+
+*이 파일은 작업 백로그다. 작업이 완료되면 체크박스를 갱신하고, 페이즈가 넘어가면 진행 현황(맨 위 막대 그래프)도 같이 업데이트한다.*

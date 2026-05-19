@@ -2,22 +2,39 @@
 
 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
+**Repo**: <https://github.com/LeeKyuHyeong/account-app>
+**현재 페이즈**: `Week 1 — 기반 + Multi-tenant 셋업` (Task 1 완료, Task 2~6 진행 예정)
+
 ## 설계 / 작업 지시서
 
-전체 설계와 현재 작업 페이즈는 [`docs/account.md`](docs/account.md) 참조.
+- 전체 설계와 작업 페이즈: [`docs/account.md`](docs/account.md)
+- 작업 우선순위 / 백로그: [`TODO.md`](TODO.md)
 
-> **에이전트(Claude Code 등)는 항상 `docs/account.md`의 §0(작업 가이드)과 §8(현재 작업)을 먼저 읽고 그 안의 작업만 수행한다.**
+> **에이전트(Claude Code 등)는 항상 `docs/account.md`의 §0(작업 가이드)과 §8(현재 작업), 그리고 `TODO.md`를 먼저 읽고 그 안의 작업만 수행한다.**
 
 ## 모노레포 구성
 
 | 모듈 | 상태 | 책임 |
 |---|---|---|
-| `account-ai` | ✅ 프로토타입 존재 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
-| `account-api` | ⏳ Week 1 | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
-| `account-core` | ⏳ Week 1 | Entity, Repository, Service. Multi-tenant 격리 본체 |
+| `account-ai` | ✅ 프로토타입 + 멀티 모듈 편입 완료 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
+| `account-api` | 🟡 스켈레톤(`AccountApiApplication` 기동 가능, DB 미연결) | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
+| `account-core` | ⏳ Week 1 Task 2~4 | Entity, Repository, Service. Multi-tenant 격리 본체 |
 | `account-batch` | ⏳ Week 4+ | 월말 집계, 이미지 정리, 알림 발송 |
 | `flutter-app` | ⏳ Week 2+ | 모바일 앱 (iOS/Android) |
 | `docs/` | ✅ 본 문서 | 설계 + 작업 지시서 |
+
+## Week 1 진행 현황
+
+| Task | 내용 | 상태 |
+|---|---|---|
+| 1 | Gradle 멀티 모듈 루트 셋업 | ✅ 완료 |
+| 2 | MariaDB Docker + Flyway 스키마 | ⏳ 다음 |
+| 3 | JPA Entity + Repository | ⏳ |
+| 4 | HouseholdContext + Hibernate Filter (격리 검증) | ⏳ |
+| 5 | JWT 인증 셋업 | ⏳ |
+| 6 | `account-ai` 모듈 멀티 모듈 통합 (`ReceiptController` 이전) | ⏳ |
+
+상세는 [`TODO.md`](TODO.md) 또는 `docs/account.md` §8 참조.
 
 ## 기술 스택
 
@@ -43,7 +60,7 @@
 
 ## 시크릿 관리
 
-`application-secret.yml`, `.env`, `*.pem`, `*.key` 등은 `.gitignore`로 차단됨. 환경변수 또는 `application-secret.yml` 분리 사용. 자세한 내용은 `docs/account.md` §10.2 참조.
+`application-secret.yml`, `.env`, `*.pem`, `*.key`, `local.properties` 등은 `.gitignore`로 차단됨. 환경변수 또는 `application-secret.yml` 분리 사용. 자세한 내용은 `docs/account.md` §10.2 참조.
 
 ```yaml
 # application.yml (커밋 OK)
@@ -56,6 +73,15 @@ account:
 
 ## 개발 시작
 
-현재는 `account-ai` 모듈 단독 빌드만 가능. 멀티 모듈 루트(`settings.gradle.kts`, 루트 `build.gradle.kts`) 셋업은 Week 1 Task 1에서 진행.
+```bash
+# 빌드 (전체 모듈)
+./gradlew build
 
-Week 1 작업 순서는 `docs/account.md` §8.2 참조.
+# account-api 기동 (현재는 DB 자동 설정 제외된 상태 — Task 2에서 활성화)
+./gradlew :account-api:bootRun
+
+# account-ai 단독 테스트
+./gradlew :account-ai:test
+```
+
+다음 진행 작업과 우선순위는 [`TODO.md`](TODO.md) 참조.
