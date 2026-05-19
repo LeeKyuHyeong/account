@@ -1,6 +1,14 @@
 spring:
   application:
     name: account-api
+
+  # ─── 시크릿 분리 (§10.2 KH Shop 패턴) ───
+  # 프로젝트 루트의 application-secret.yml 을 병합 로드 (gitignored).
+  # 파일이 없어도 기동에 실패하지 않도록 optional: 접두사 사용.
+  # 운영에서는 본 파일 대신 환경변수 (ACCOUNT_CLAUDE_API_KEY 등) 로 주입.
+  config:
+    import: optional:file:./application-secret.yml
+
   # Java 21 가상 스레드 — DB / Claude API 동기 호출이 캐리어 스레드를 점유하지 않음
   threads:
     virtual:
