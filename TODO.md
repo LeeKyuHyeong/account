@@ -176,8 +176,8 @@ v1.1+:     대기
 - [ ] 각 테스트 자체 시드, 다른 테스트의 부산물 의존 금지
 
 ### 외부 의존 / 사용자 행동 필요 항목
-- [ ] Anthropic Console에서 Claude API 키 발급 + 월 한도 $10 설정 (사용자)
-- [ ] Apple Developer 가입 ($99/년, Week 6 이전) (사용자)
+- [x] Anthropic Console에서 Claude API 키 발급 + 월 한도 $10 설정 → `application-secret.yml` 로컬 주입 완료
+- [ ] ~~Apple Developer 가입~~ — **유예** (docs §11 #2 변경). Mac + 아내 iPhone 테스트 필요 시점에 재신청
 - [ ] VPS에 `account.kyuhyeong.com` DNS A 레코드 추가 (Week 6) (사용자)
 - [ ] GitHub Repo Settings → Secrets에 CI/CD용 시크릿 등록 (Week 6) (사용자)
 
