@@ -12,7 +12,7 @@
 ## 진행 현황 (요약)
 
 ```
-Week 1: ▓▓▓▓░░░  Task 4/6 완료
+Week 1: ▓▓▓▓▓░░  Task 5/6 완료
 Week 2-6:  대기
 v1.1+:     대기
 ```
@@ -62,18 +62,18 @@ v1.1+:     대기
 - [ ] **알려진 이슈**: `HouseholdIsolationIntegrationTest` 는 `@Disabled` — Docker Desktop on Windows 의 CLI 프록시 가로채기로 Testcontainers 가 docker-java 통신 실패. Linux CI 또는 Docker Desktop TCP 노출 활성화 시 재활성화
 - 커밋: `feat(core): add multi-tenant isolation via HouseholdContext + Hibernate filter`
 
-### Task 5. JWT 인증 셋업
-- [ ] `JwtTokenProvider` (access 15분 / refresh 30일, 클레임: `sub`/`household_id`/`role`)
-- [ ] secret은 `application-secret.yml` (`account.jwt.secret`) — 커밋 금지
-- [ ] `JwtAuthenticationFilter` (`OncePerRequestFilter`) — 헤더/쿠키에서 JWT 추출 → `HouseholdContext.set` → finally clear
-- [ ] `SecurityConfig` — `/api/auth/**` 외 인증 필수
-- [ ] `AuthController`
-  - `POST /api/auth/login` (BCrypt, 첫 번째 가구 자동 선택)
-  - `POST /api/auth/refresh`
-  - `GET /api/auth/me`
-- [ ] Task 4의 임시 `X-Household-Id` 헤더 처리 제거 → JWT 클레임 사용
-- [ ] Task 4의 격리 테스트를 JWT 기반으로 수정
-- [ ] Acceptance: 사용자#1 토큰으로 가구#2 자원 접근 시 빈 결과 또는 404
+### Task 5. JWT 인증 셋업 ✅
+- [x] `JwtTokenProvider` — access(15분) + refresh(30일), 클레임 sub/household_id/role, HS256
+- [x] `JwtProperties` — `account.jwt.{secret,access-ttl,refresh-ttl}` 바인딩. secret 은 base64, @PostConstruct 에서 32바이트 미만/blank/invalid base64 모두 명확히 실패
+- [x] `JwtAuthenticationFilter` (OncePerRequestFilter) — Bearer 헤더 → 검증 → SecurityContext + HouseholdContext set, finally clear (두 ThreadLocal 모두)
+- [x] `SecurityConfig` — STATELESS, /api/auth/login + /refresh permitAll, 나머지 인증 필수, 401 EntryPoint
+- [x] `AuthController` + `AuthService` + `AuthDtos` records — login / refresh / me
+- [x] Task 4 의 `HouseholdContextFilter` (X-Household-Id) **제거** — JWT 클레임 단일 진입점
+- [x] V3 마이그레이션: 4 시드 사용자에 BCrypt(`dev1234!`) 적용 (`BcryptHashToolTest` 재현 가능)
+- [x] `application-secret.yml.example` jwt 블록 추가, `application.yml` 기본값은 빈 secret (명확한 실패)
+- [x] `bootRun.workingDir = rootProject.projectDir` — 모듈 dir 가 아닌 루트에서 실행해야 `optional:file:./application-secret.yml` 이 로드됨 (이전엔 placeholder default 가 non-blank 라 조용히 가려져 있던 잠재 버그)
+- [x] 격리 통합 테스트 JWT 기반으로 갱신 (여전히 `@Disabled` — TC 이슈)
+- [x] **수동 Acceptance 통과**: owner1 토큰 → 22, owner2 → 5, 익명 → 401, 잘못된 비밀번호 → 401
 - 커밋: `feat(api): add JWT authentication with household_id claim`
 
 ### Task 6. account-ai 모듈 멀티 모듈 통합

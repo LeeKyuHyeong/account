@@ -42,3 +42,10 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:1.20.4")
     testImplementation("org.testcontainers:mariadb:1.20.4")
 }
+
+// bootRun 의 working directory 를 프로젝트 루트로 고정.
+// 이래야 spring.config.import: optional:file:./application-secret.yml 이 루트의
+// application-secret.yml 을 정상 로드한다 (기본값은 module dir = account-api/).
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    workingDir = rootProject.projectDir
+}
