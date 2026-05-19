@@ -1,0 +1,47 @@
+# account-ai 모듈 설정 예시
+#
+# API 키는 절대 평문 커밋 금지. 두 가지 선택지:
+#   1. application-secret.yml 로 분리하여 .gitignore 등록 (KH Shop 패턴)
+#   2. 환경변수 ACCOUNT_CLAUDE_API_KEY 로 주입 (운영 권장)
+#
+# 본 파일에서는 Spring Boot의 ${...:기본값} 문법으로 환경변수 우선 사용.
+
+spring:
+  application:
+    name: account-ai
+  # Java 21 가상 스레드 활성화 — RestClient 동기 호출이 캐리어 스레드를 점유하지 않음
+  threads:
+    virtual:
+      enabled: true
+  # 멀티파트 업로드 한도 (영수증은 보통 1MB 미만, 여유롭게 10MB)
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+account:
+  claude:
+    # Console(console.anthropic.com)에서 발급한 API 키
+    api-key: ${ACCOUNT_CLAUDE_API_KEY}
+
+    # 사용 모델 — Sonnet 4.5로 시작, 운영 안정화 후 Haiku 다운그레이드 검토
+    model: claude-sonnet-4-5
+
+    # 영수증 JSON은 짧으므로 1024로 충분 (한국어 평균 1토큰 ≈ 2~3자)
+    max-tokens: 1024
+
+    # API 호출 타임아웃 — 영수증 1장 분석은 보통 5~15초
+    timeout: 30s
+
+    # 베이스 URL (테스트 시 WireMock 등으로 오버라이드 가능)
+    base-url: https://api.anthropic.com
+
+    # Anthropic API 버전 헤더
+    api-version: 2023-06-01
+
+# 로깅 — 운영에서는 INFO, 개발에서는 DEBUG로 프롬프트/응답 확인
+logging:
+  level:
+    com.kyuhyeong.account.ai: DEBUG
+    # Claude API 페이로드를 보고 싶으면 WARN → DEBUG (요청 본문 노출 주의)
+    org.springframework.web.client.RestClient: INFO

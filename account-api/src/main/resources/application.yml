@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: account-api
+  threads:
+    virtual:
+      enabled: true
+  # Task 1: DB 미연결 상태에서 bootRun 검증을 위해 임시 제외.
+  # Task 2 (Flyway + MariaDB) 에서 이 블록을 제거하고 정상 데이터소스 설정 추가.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+server:
+  port: 8080
+
+# 시크릿 placeholder — 실제 운영 값은 환경변수 또는 application-secret.yml 에서 주입.
+# 본 placeholder 는 bootRun 기동 검증 (Task 1) 용. 실제 Claude 호출 시점에는
+# 401 Unauthorized 가 발생하나 ApplicationContext 자체는 정상 기동됨.
+account:
+  claude:
+    api-key: ${ACCOUNT_CLAUDE_API_KEY:placeholder-set-via-application-secret-yml}
+
+logging:
+  level:
+    com.kyuhyeong: DEBUG
