@@ -1,0 +1,36 @@
+# account-app 로컬 개발용 MariaDB.
+#
+# 운영 stack 은 별도 (Week 6 에서 nginx + app 컨테이너와 함께 정의).
+# 본 파일은 개발 PC 에서 `./gradlew :account-api:bootRun` 직전에
+# `docker compose up -d` 로 MariaDB 만 띄우는 용도.
+#
+# 시크릿 정책 (§10.2):
+#   - 비밀번호는 환경변수로 주입. 기본값은 의도적으로 약한 로컬 전용 값
+#     (운영에서는 ACCOUNT_DB_*_PASSWORD 환경변수를 반드시 설정).
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: account-app-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${ACCOUNT_DB_ROOT_PASSWORD:-rootlocal}
+      MARIADB_DATABASE: ${ACCOUNT_DB_NAME:-account}
+      MARIADB_USER: ${ACCOUNT_DB_USER:-account}
+      MARIADB_PASSWORD: ${ACCOUNT_DB_PASSWORD:-accountlocal}
+    # 호스트 3306 은 기존 mysqld 가 점유 중이라 3305 로 노출.
+    # 컨테이너 내부 포트는 3306 유지 (MariaDB 기본값).
+    ports:
+      - "3305:3306"
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

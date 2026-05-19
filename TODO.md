@@ -12,7 +12,7 @@
 ## 진행 현황 (요약)
 
 ```
-Week 1: ▓░░░░░░  Task 1/6 완료
+Week 1: ▓▓░░░░░  Task 2/6 완료
 Week 2-6:  대기
 v1.1+:     대기
 ```
@@ -30,15 +30,13 @@ v1.1+:     대기
 - [x] Gradle Wrapper
 - [x] `AccountApiApplication` 기동 확인 (DB 미연결 상태)
 
-### Task 2. MariaDB Docker + Flyway 스키마  ← **다음 진행**
-- [ ] 루트 `docker-compose.yml` (MariaDB 11.x, 포트 3306, volume `./data/mariadb`)
-- [ ] `account-core/src/main/resources/db/migration/V1__init_schema.sql`
-  - `docs/account.md` §6.1의 13개 테이블
-  - 인덱스 명시대로
-  - FK는 `ON DELETE RESTRICT` 기본
-- [ ] `V2__seed_dev.sql` — 가구 2개(`우리집`, `테스트가구`), 사용자 4명, 카테고리(22 + 5, 격리 검증용 의도적 차이)
-- [ ] `account-api/application.yml` — Flyway + JPA 활성화, 현재 비활성된 DataSourceAutoConfiguration 제외 블록 제거
-- [ ] Acceptance: `./gradlew :account-api:bootRun` 시 V1/V2 자동 적용, `SHOW TABLES;` 13개 확인
+### Task 2. MariaDB Docker + Flyway 스키마 ✅
+- [x] 루트 `docker-compose.yml` (MariaDB 11.4, 호스트 포트 **3305**, volume `./data/mariadb`) — 호스트 mysqld 가 3306 점유 중이라 변경
+- [x] `account-core/src/main/resources/db/migration/V1__init_schema.sql` — 12 도메인 테이블 + 인덱스 + FK(`ON DELETE RESTRICT`)
+- [x] `V2__seed_dev.sql` — 가구 2(`우리집`/`테스트가구`), 사용자 4, 카테고리 22+5 (격리 검증용 차이)
+- [x] `account-api/application.yml` — DataSource + JPA + Flyway 활성화, autoconfigure.exclude 블록 제거
+- [x] Acceptance: `./gradlew :account-api:bootRun` 시 V1/V2 자동 적용 → 13개 테이블(12+flyway_schema_history), 가구 2, 카테고리 22/5, 사용자 4 확인
+- [x] 알려진 변형: `monthly_summaries.year_month` 는 MariaDB 예약어라 백틱 인용. Task 3 entity 에서 `@Column(name = "`year_month`")` 사용 필요
 - 커밋: `feat(core): add flyway migrations with seed data for two households`
 
 ### Task 3. JPA Entity + Repository

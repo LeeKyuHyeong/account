@@ -3,7 +3,7 @@
 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
 **Repo**: <https://github.com/LeeKyuHyeong/account-app>
-**현재 페이즈**: `Week 1 — 기반 + Multi-tenant 셋업` (Task 1 완료, Task 2~6 진행 예정)
+**현재 페이즈**: `Week 1 — 기반 + Multi-tenant 셋업` (Task 1~2 완료, Task 3~6 진행 예정)
 
 ## 설계 / 작업 지시서
 
@@ -17,8 +17,8 @@
 | 모듈 | 상태 | 책임 |
 |---|---|---|
 | `account-ai` | ✅ 프로토타입 + 멀티 모듈 편입 완료 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
-| `account-api` | 🟡 스켈레톤(`AccountApiApplication` 기동 가능, DB 미연결) | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
-| `account-core` | ⏳ Week 1 Task 2~4 | Entity, Repository, Service. Multi-tenant 격리 본체 |
+| `account-api` | 🟡 스켈레톤(`AccountApiApplication` + MariaDB + Flyway 기동 OK) | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
+| `account-core` | 🟡 Flyway 스키마 완료(`V1`/`V2`), Entity/Repository 미작성 | Entity, Repository, Service. Multi-tenant 격리 본체 |
 | `account-batch` | ⏳ Week 4+ | 월말 집계, 이미지 정리, 알림 발송 |
 | `flutter-app` | ⏳ Week 2+ | 모바일 앱 (iOS/Android) |
 | `docs/` | ✅ 본 문서 | 설계 + 작업 지시서 |
@@ -28,8 +28,8 @@
 | Task | 내용 | 상태 |
 |---|---|---|
 | 1 | Gradle 멀티 모듈 루트 셋업 | ✅ 완료 |
-| 2 | MariaDB Docker + Flyway 스키마 | ⏳ 다음 |
-| 3 | JPA Entity + Repository | ⏳ |
+| 2 | MariaDB Docker + Flyway 스키마 | ✅ 완료 |
+| 3 | JPA Entity + Repository | ⏳ 다음 |
 | 4 | HouseholdContext + Hibernate Filter (격리 검증) | ⏳ |
 | 5 | JWT 인증 셋업 | ⏳ |
 | 6 | `account-ai` 모듈 멀티 모듈 통합 (`ReceiptController` 이전) | ⏳ |
@@ -74,14 +74,21 @@ account:
 ## 개발 시작
 
 ```bash
-# 빌드 (전체 모듈)
+# 1) MariaDB 로컬 컨테이너 (호스트 포트 3305 — 3306 은 기존 mysqld 충돌 회피)
+docker compose up -d
+
+# 2) 빌드
 ./gradlew build
 
-# account-api 기동 (현재는 DB 자동 설정 제외된 상태 — Task 2에서 활성화)
+# 3) account-api 기동 (Flyway V1/V2 자동 적용 → 가구 2 + 카테고리 22/5 시드)
 ./gradlew :account-api:bootRun
 
 # account-ai 단독 테스트
 ./gradlew :account-ai:test
 ```
+
+> **로컬 DB 접속 기본값** (`application.yml` 디폴트, env 로 오버라이드 가능)
+> `jdbc:mariadb://localhost:3305/account` · user `account` / pw `accountlocal`
+> 운영에서는 `ACCOUNT_DB_HOST/PORT/USER/PASSWORD` 환경변수를 반드시 설정.
 
 다음 진행 작업과 우선순위는 [`TODO.md`](TODO.md) 참조.
