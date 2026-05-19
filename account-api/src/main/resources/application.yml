@@ -1,23 +1,59 @@
 spring:
   application:
     name: account-api
+  # Java 21 가상 스레드 — DB / Claude API 동기 호출이 캐리어 스레드를 점유하지 않음
   threads:
     virtual:
       enabled: true
-  # Task 1: DB 미연결 상태에서 bootRun 검증을 위해 임시 제외.
-  # Task 2 (Flyway + MariaDB) 에서 이 블록을 제거하고 정상 데이터소스 설정 추가.
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  # ─── DataSource (MariaDB) ───
+  # 운영에서는 ACCOUNT_DB_* 환경변수로 반드시 오버라이드. 기본값은 로컬
+  # docker-compose 와 맞춰둔 dev 전용 값이며, 시크릿이 아니다.
+  datasource:
+    # 로컬 docker-compose 가 호스트 3305 로 노출 (기존 mysqld 가 3306 점유).
+    # 운영에서는 ACCOUNT_DB_PORT 환경변수로 표준 3306 (또는 사내 포트) 오버라이드.
+    url: jdbc:mariadb://${ACCOUNT_DB_HOST:localhost}:${ACCOUNT_DB_PORT:3305}/${ACCOUNT_DB_NAME:account}?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Seoul
+    username: ${ACCOUNT_DB_USER:account}
+    password: ${ACCOUNT_DB_PASSWORD:accountlocal}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      pool-name: account-api-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 10000
+
+  # ─── JPA / Hibernate ───
+  # 스키마 관리는 Flyway 단독 책임. JPA 는 검증만 (Task 3 에서 entity 추가 후
+  # 'none' → 'validate' 로 격상 권장. 본 시점은 entity 가 없으므로 'none').
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+    open-in-view: false
+
+  # ─── Flyway ───
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  # ─── 멀티파트 업로드 (영수증) ───
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080
 
 # 시크릿 placeholder — 실제 운영 값은 환경변수 또는 application-secret.yml 에서 주입.
-# 본 placeholder 는 bootRun 기동 검증 (Task 1) 용. 실제 Claude 호출 시점에는
-# 401 Unauthorized 가 발생하나 ApplicationContext 자체는 정상 기동됨.
+# 본 placeholder 는 ApplicationContext 기동 검증용. 실제 Claude 호출 시 401 발생.
 account:
   claude:
     api-key: ${ACCOUNT_CLAUDE_API_KEY:placeholder-set-via-application-secret-yml}
@@ -25,3 +61,6 @@ account:
 logging:
   level:
     com.kyuhyeong: DEBUG
+    org.flywaydb: INFO
+    # Hibernate SQL 보고 싶으면 DEBUG
+    org.hibernate.SQL: INFO
