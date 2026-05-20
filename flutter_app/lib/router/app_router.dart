@@ -1,0 +1,50 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/providers/auth_provider.dart';
+import '../features/home/presentation/home_screen.dart';
+
+/// 인증 상태 변화 시 go_router 를 refresh 시키기 위한 어댑터.
+///
+/// go_router 의 [GoRouter.refreshListenable] 은 [Listenable] 을 받는데, Riverpod
+/// 의 [AsyncValue] 는 Listenable 이 아니다. 본 어댑터로 ref.listen → notifyListeners
+/// 로 변환하면 로그인 / 로그아웃 즉시 라우터가 redirect 를 재계산한다.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen<AsyncValue<AuthState>>(authProvider, (_, _) {
+      notifyListeners();
+    });
+  }
+}
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final notifier = _RouterNotifier(ref);
+  return GoRouter(
+    initialLocation: '/home',
+    refreshListenable: notifier,
+    redirect: (context, state) {
+      final auth = ref.read(authProvider);
+      // 부팅 직후 토큰 검증 중에는 redirect 보류 — 화면은 그대로 두고 결과 대기.
+      if (auth.isLoading || !auth.hasValue) {
+        return null;
+      }
+      final isAuth = auth.value is Authenticated;
+      final loggingIn = state.matchedLocation == '/login';
+      if (!isAuth && !loggingIn) return '/login';
+      if (isAuth && loggingIn) return '/home';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomeScreen(),
+      ),
+    ],
+  );
+});
