@@ -16,6 +16,7 @@ Week 1: ▓▓▓▓▓▓░  Task 6 코드 통합 완료 / 통합 테스트·A
 Week 2-3: ▓▓▓▓▓▓░ Flutter 로그인 + 거래 목록/입력 + 백엔드 API 완료
 Week 4:   ▓▓▓▓▓▓░ 카메라 촬영 + 1280px 압축 + 업로드 + 신뢰도 분기 컨펌 + PATCH 완료
 Week 5:   ▓▓▓▓▓▓░ 학습 UPSERT + 월별 집계 + 홈 카드 + 배치 잡 + 시계열 + 추이 차트 완료
+Week 6:   ▓▓▓▓░░░ Dockerfile + 운영 compose + nginx 예시 + CI 완료 / CD + Android signing + LE 발급 대기
 v1.1+:     대기
 ```
 
@@ -140,12 +141,15 @@ v1.1+:     대기
 - [ ] 앱 아이콘 Quick Action — Week 6 배포 시점에 같이
 
 ### Week 6. 배포
-- [ ] `account.kyuhyeong.com` 서브도메인 + nginx server block
-- [ ] Let's Encrypt 인증서 발급 (기존 certbot 활용)
-- [ ] Docker Compose 운영 stack 구성
-- [ ] GitHub Actions CI/CD (KH Shop 패턴 재활용)
-- [ ] TestFlight 빌드 + 부부 단말 설치
-- [ ] Android APK Internal Track
+- [x] **`account.kyuhyeong.com` nginx server block 예시** — `infra/nginx/account.kyuhyeong.com.conf.example` (HTTP→HTTPS 리다이렉트, Let's Encrypt cert 경로, 보안 헤더, client_max_body_size 12m, Claude 분석용 90s timeout)
+- [x] **Docker Compose 운영 stack** — `docker-compose.prod.yml` (mariadb 호스트 미노출 + account-api 127.0.0.1:8080만 노출 + 볼륨 `/var/lib/account-app/{mariadb,receipts}` + always restart). `account-api/Dockerfile` multi-stage (jdk-alpine build → jre-alpine runtime, tini PID 1).
+- [x] **GitHub Actions CI** — `.github/workflows/ci.yml` (backend gradle build/test + Flutter analyze/test/build apk, 병렬 잡, concurrency cancel 정책)
+- [x] **`.env.prod.example` + 배포 가이드** — `docs/deployment.md` (DNS / Claude 키 / JWT secret 생성 → VPS 준비 → compose 빌드/기동 → nginx + LE 발급 → curl 검증 → Android release APK 빌드)
+- [ ] **Let's Encrypt 발급** — VPS 사용자 수동 단계 (`certbot --nginx -d account.kyuhyeong.com`)
+- [ ] **CD 자동화** — git push to main → GitHub Actions → SSH 로 VPS pull/rebuild/restart. 별도 PR (GitHub Secrets 등록 필요)
+- [ ] **Android release signing** — `flutter_app/android/app/build.gradle.kts` 서명 설정 + keystore 가이드. 별도 PR
+- [ ] ~~TestFlight 빌드 + 부부 단말 설치~~ — `docs/account.md` §11 #2 변경에 따라 유예 (Android-first MVP)
+- [ ] Android APK Internal Track 배포 — Android release signing PR 후
 
 ---
 

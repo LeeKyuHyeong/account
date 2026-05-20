@@ -1,0 +1,85 @@
+# account-app CI — backend (Gradle) + Flutter app.
+#
+# 트리거: push to main / develop, 모든 PR.
+# 두 잡은 독립 실행 (병렬). 한 쪽 실패가 다른 쪽 결과를 가리지 않는다.
+#
+# 이미 비활성된 알려진 테스트 (HouseholdIsolationIntegrationTest @Disabled — Windows
+# Docker Desktop 이슈) 는 자동 skip. Linux runner 에서는 enable 시도 가능하나
+# 별도 PR 에서 검증 후 진행.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# 같은 브랜치 push 가 연달아 오면 이전 잡 취소 — 무의미한 큐 적체 방지.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Gradle build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build + test
+        run: ./gradlew build
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          retention-days: 7
+
+  flutter:
+    name: Flutter (analyze + test + APK)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Android Gradle plugin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # pubspec.yaml 의 environment.sdk 와 호환되는 최신 stable. 명시 버전이 필요해지면
+          # flutter-version: "3.38.x" 형태로 고정.
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Unit / widget tests
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug

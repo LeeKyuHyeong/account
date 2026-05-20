@@ -8,6 +8,9 @@
 **/application-local.yaml
 **/*.env
 .env*
+# *.example 템플릿은 커밋 가능 (값 placeholder만, 시크릿 없음). 본 줄은 위 패턴들의 예외.
+!.env*.example
+!**/application-secret.yml.example
 *.pem
 *.key
 id_rsa*
