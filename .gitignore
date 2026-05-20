@@ -58,7 +58,9 @@ desktop.ini
 test-receipts/
 sample-receipts/
 **/receipts/
-data/
+# 루트의 ./data/ 만 차단 (Docker volume + 영수증 저장소). 소스 디렉토리의 *features/.../data/*
+# 같은 이름은 영향 없도록 leading slash 로 고정.
+/data/
 /mnt/data/
 
 # ───────────────────────────────────────────────────────────────

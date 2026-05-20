@@ -6,6 +6,7 @@ import com.kyuhyeong.account.ai.model.MerchantHistoryContext;
 import com.kyuhyeong.account.ai.model.ReceiptAnalysisResult;
 import com.kyuhyeong.account.ai.service.MerchantHistoryProvider;
 import com.kyuhyeong.account.ai.service.ReceiptAnalysisService;
+import com.kyuhyeong.account.api.transaction.TransactionHistoryService;
 import com.kyuhyeong.account.core.entity.Category;
 import com.kyuhyeong.account.core.entity.Household;
 import com.kyuhyeong.account.core.entity.Receipt;
@@ -66,6 +67,7 @@ public class ReceiptIngestionService {
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
     private final ObjectMapper objectMapper;
+    private final TransactionHistoryService historyService;
 
     @Transactional
     public IngestResult ingest(MultipartFile image, Long uploaderUserId) throws IOException {
@@ -115,6 +117,7 @@ public class ReceiptIngestionService {
                 .status(TransactionStatus.DRAFT)
                 .build();
         tx = transactionRepository.save(tx);
+        historyService.logCreate(tx, uploaderUserId);
 
         log.info("Receipt ingested: receiptId={}, transactionId={}, merchant='{}', total={}, confidence={}",
                 receipt.getId(), tx.getId(), result.merchant(), result.total(), result.confidence());

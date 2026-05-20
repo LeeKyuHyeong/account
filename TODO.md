@@ -13,7 +13,8 @@
 
 ```
 Week 1: ▓▓▓▓▓▓░  Task 6 코드 통합 완료 / 통합 테스트·Acceptance 보류
-Week 2-3: ▓▓▓▓▓░░ Flutter 로그인 + 거래 목록/입력 + 백엔드 API 완료 / Week 4 카메라 대기
+Week 2-3: ▓▓▓▓▓▓░ Flutter 로그인 + 거래 목록/입력 + 백엔드 API 완료
+Week 4:   ▓▓▓▓▓▓░ 카메라 촬영 + 1280px 압축 + 업로드 + 신뢰도 분기 컨펌 + PATCH 완료
 v1.1+:     대기
 ```
 
@@ -116,13 +117,17 @@ v1.1+:     대기
 - [x] 검증: `./gradlew build`, `flutter analyze` 0 issues, `flutter test` 1/1, `flutter build apk --debug` OK.
 
 ### Week 4. 카메라 + 영수증 촬영
-- [ ] `image_picker` 통합
-- [ ] 클라이언트 측 1280px 압축 (`image` 라이브러리)
-- [ ] 업로드 → 분석 결과 → 컨펌 화면 흐름
-- [ ] 신뢰도 분기 UI
-  - `confidence ≥ 0.8`: 자동 확정
-  - `0.5~0.8`: 컨펌 요청
-  - `< 0.5`: 수동 카테고리 선택
+- [x] **백엔드**: `PATCH /api/transactions/{id}` (categoryId/status partial update, DRAFT→CONFIRMED 일방향). `transaction_history` 적재 (CREATE on insert + UPDATE on patch). `ReceiptIngestionService` 도 CREATE 이력 적재.
+- [x] `image_picker` 통합 (CAMERA 권한 main 매니페스트)
+- [x] 클라이언트 측 1280px 압축 (`image` 라이브러리, JPEG 80%, `compute()` 로 isolate off-main-thread)
+- [x] 업로드 → 분석 결과 → 컨펌 화면 흐름 (`/receipts/new` → `/receipts/confirm`)
+- [x] 신뢰도 분기 UI
+  - `confidence ≥ 0.8`: 자동 확정 권장 banner + "이대로 확정" 버튼
+  - `0.5~0.8`: 카테고리 확인 요청 banner
+  - `< 0.5`: 수동 변경 강제 (변경 없으면 확정 버튼 비활성)
+- [x] HomeScreen 에 large FAB 카메라 버튼 추가
+- [x] 컨펌 후 거래 목록 invalidate + `/transactions` 로 이동
+- [x] 검증: `./gradlew test` + `flutter analyze` 0 issues + `flutter test` 1/1 + `flutter build apk --debug` OK
 
 ### Week 5. 학습 + 대시보드
 - [ ] `merchant_history` 학습 피드백 루프 (사용자 수정 시 UPSERT)

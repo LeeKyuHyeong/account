@@ -3,6 +3,7 @@ package com.kyuhyeong.account.api.transaction;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
+import com.kyuhyeong.account.api.transaction.TransactionDtos.UpdateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionService.TransactionListQuery;
 import com.kyuhyeong.account.core.enums.CategoryType;
 import com.kyuhyeong.account.core.enums.TransactionStatus;
@@ -13,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,5 +62,17 @@ public class TransactionController {
         Long userId = (Long) authentication.getPrincipal();
         TransactionResponse created = transactionService.create(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * 거래 부분 수정. 영수증 컨펌 흐름에서 status(DRAFT→CONFIRMED) + categoryId 변경에 사용.
+     */
+    @PatchMapping("/{id}")
+    public TransactionResponse update(
+            @PathVariable Long id,
+            @RequestBody UpdateTransactionRequest request,
+            Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        return transactionService.update(id, request, userId);
     }
 }

@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/receipt/models/receipt_response.dart';
+import '../features/receipt/presentation/receipt_capture_screen.dart';
+import '../features/receipt/presentation/receipt_confirmation_screen.dart';
 import '../features/transaction/presentation/transaction_form_screen.dart';
 import '../features/transaction/presentation/transaction_list_screen.dart';
 
@@ -55,6 +58,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TransactionFormScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/receipts/new',
+        builder: (context, state) => const ReceiptCaptureScreen(),
+      ),
+      GoRoute(
+        path: '/receipts/confirm',
+        builder: (context, state) {
+          final upload = state.extra as ReceiptUploadResponse?;
+          if (upload == null) {
+            // extra 가 없으면 캡처로 되돌린다 (딥링크 직접 접근 방지).
+            return const ReceiptCaptureScreen();
+          }
+          return ReceiptConfirmationScreen(upload: upload);
+        },
       ),
     ],
   );

@@ -2,6 +2,9 @@
     <!-- 백엔드 API 호출용. 운영(account.kyuhyeong.com) 은 HTTPS 이므로 cleartext 는
          debug 매니페스트에만 한정 (개발 시 10.0.2.2 HTTP 호출 허용). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- image_picker 카메라 모드 — 일부 단말에서 카메라 가용성 확보. 갤러리/PhotoPicker
+         경로는 권한 불필요 (Android 13+ Photo Picker / Storage Access Framework). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:label="flutter_app"

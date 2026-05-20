@@ -22,6 +22,11 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.large(
+        onPressed: () => context.push('/receipts/new'),
+        tooltip: '영수증 촬영',
+        child: const Icon(Icons.camera_alt),
+      ),
       body: Center(
         child: state.when(
           loading: () => const CircularProgressIndicator(),
