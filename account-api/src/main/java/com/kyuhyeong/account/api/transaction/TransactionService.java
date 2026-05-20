@@ -3,6 +3,7 @@ package com.kyuhyeong.account.api.transaction;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
+import com.kyuhyeong.account.api.transaction.TransactionDtos.UpdateTransactionRequest;
 import com.kyuhyeong.account.core.entity.Category;
 import com.kyuhyeong.account.core.entity.Household;
 import com.kyuhyeong.account.core.entity.Transaction;
@@ -46,6 +47,7 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
+    private final TransactionHistoryService historyService;
 
     @Transactional(readOnly = true)
     public PageResponse<TransactionResponse> list(TransactionListQuery query) {
@@ -84,6 +86,49 @@ public class TransactionService {
                 .status(TransactionStatus.CONFIRMED)
                 .build();
         tx = transactionRepository.save(tx);
+        historyService.logCreate(tx, authorUserId);
+        return TransactionResponse.from(tx);
+    }
+
+    /**
+     * 부분 수정 (PATCH). 현재는 categoryId / status 만 지원 — 영수증 컨펌 흐름에 한정.
+     *
+     * <p>status 는 DRAFT → CONFIRMED 일방향만 허용 (역방향은 데이터 무결성 위험).
+     * 카테고리 변경은 같은 가구의 카테고리여야 한다 (Hibernate filter 가 자동 강제).
+     * soft-delete 된 거래는 수정 불가.
+     */
+    @Transactional
+    public TransactionResponse update(Long id, UpdateTransactionRequest request, Long actorUserId) {
+        Transaction tx = transactionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Transaction not found or not in current household: " + id));
+        if (tx.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Cannot update deleted transaction: " + id);
+        }
+
+        TransactionHistoryService.Snapshot before = TransactionHistoryService.Snapshot.from(tx);
+        boolean changed = false;
+        User actor = userRepository.getReferenceById(actorUserId);
+
+        if (request.categoryId() != null
+                && !request.categoryId().equals(tx.getCategory().getId())) {
+            Category newCategory = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Category not found or not in current household: " + request.categoryId()));
+            tx.reassignCategory(newCategory, actor);
+            changed = true;
+        }
+        if (request.status() != null && request.status() != tx.getStatus()) {
+            if (request.status() != TransactionStatus.CONFIRMED) {
+                throw new IllegalArgumentException(
+                        "Only DRAFT → CONFIRMED transition is allowed via PATCH");
+            }
+            tx.confirm(actor);
+            changed = true;
+        }
+        if (changed) {
+            historyService.logUpdate(tx, before, actorUserId);
+        }
         return TransactionResponse.from(tx);
     }
 
