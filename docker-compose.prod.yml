@@ -1,0 +1,78 @@
+# account-app 운영 stack (docs/account.md §5.3).
+#
+# 사용 흐름 (VPS 에서):
+#   1. .env.prod 파일 작성 (시크릿 채움) — .env.prod.example 참고
+#   2. docker compose -f docker-compose.prod.yml --env-file .env.prod build
+#   3. docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#   4. 호스트 nginx 가 127.0.0.1:8080 으로 리버스 프록시 (infra/nginx/ 예시 참고)
+#
+# 차이점 (개발용 docker-compose.yml 대비):
+#   - MariaDB 가 호스트에 노출 X (compose 내부 네트워크 전용)
+#   - account-api 는 127.0.0.1:8080 에만 바인딩 (외부 직접 접근 차단, nginx 만 진입점)
+#   - 영수증 저장은 /var/lib/account-app/receipts 호스트 볼륨
+#   - DB 데이터도 /var/lib/account-app/mariadb (개발과 분리)
+#   - restart 정책 always (재부팅 후 자동 기동)
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: account-app-mariadb-prod
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${ACCOUNT_DB_ROOT_PASSWORD:?required}
+      MARIADB_DATABASE: ${ACCOUNT_DB_NAME:-account}
+      MARIADB_USER: ${ACCOUNT_DB_USER:-account}
+      MARIADB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?required}
+    volumes:
+      - /var/lib/account-app/mariadb:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - account-net
+
+  account-api:
+    build:
+      context: .
+      dockerfile: account-api/Dockerfile
+    image: account-app/account-api:latest
+    container_name: account-app-api-prod
+    restart: always
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      # DB — compose 내부 DNS 로 mariadb 서비스명 사용. 호스트 mysqld 와 충돌 없음.
+      ACCOUNT_DB_HOST: mariadb
+      ACCOUNT_DB_PORT: "3306"
+      ACCOUNT_DB_NAME: ${ACCOUNT_DB_NAME:-account}
+      ACCOUNT_DB_USER: ${ACCOUNT_DB_USER:-account}
+      ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?required}
+
+      # JWT + Claude 시크릿
+      ACCOUNT_JWT_SECRET: ${ACCOUNT_JWT_SECRET:?required}
+      ACCOUNT_CLAUDE_API_KEY: ${ACCOUNT_CLAUDE_API_KEY:?required}
+
+      # 영수증 저장 경로 — VOLUME 마운트와 일치
+      ACCOUNT_RECEIPTS_STORAGE_ROOT: /mnt/data/receipts
+
+      # JVM 옵션 — 컨테이너 메모리의 75% 사용 (기본 50% 보다 ↑)
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
+    volumes:
+      - /var/lib/account-app/receipts:/mnt/data/receipts
+    # 외부 직접 접근 차단 — 호스트 nginx 만 127.0.0.1:8080 으로 진입.
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - account-net
+
+networks:
+  account-net:
+    driver: bridge
