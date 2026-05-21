@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/providers/auth_provider.dart';
+import '../../budget/presentation/over_budget_banner.dart';
 import '../../summary/presentation/this_month_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -41,6 +42,7 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             children: [
               const ThisMonthCard(),
+              const OverBudgetBanner(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                 child: Column(
@@ -72,6 +74,12 @@ class HomeScreen extends ConsumerWidget {
                       onPressed: () => context.push('/networth'),
                       icon: const Icon(Icons.account_balance_wallet_outlined),
                       label: const Text('순자산'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/settings/budget'),
+                      icon: const Icon(Icons.tune),
+                      label: const Text('예산 설정'),
                     ),
                   ],
                 ),

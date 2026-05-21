@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
+import '../features/budget/presentation/budget_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/networth/presentation/networth_form_screen.dart';
 import '../features/networth/presentation/networth_screen.dart';
@@ -100,6 +101,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/networth/trend',
         builder: (context, state) => const NetWorthTrendScreen(),
+      ),
+      GoRoute(
+        path: '/settings/budget',
+        builder: (context, state) => const BudgetScreen(),
       ),
     ],
   );
