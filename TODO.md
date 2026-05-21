@@ -157,7 +157,7 @@ v1.1+:     대기
 - [x] 순자산 화면 (자산/부채 + 월별 추이) — Backend CRUD + 스냅샷 + history API + Flutter 입력 화면 + 12개월 추이 차트 (fl_chart, 자산/부채/순자산 3선) 완료.
 - [ ] 결혼 일시 지출 화면 (예산 vs 실제, 부모 지원 분리)
 - [ ] FCM 푸시 (silent push 동기화 + 알림) — Firebase Admin SDK
-- [ ] 예산 초과 경고
+- [x] 예산 초과 경고 — PUT /api/categories/{id}/budget + Flutter 예산 설정 화면 (진행률 bar / 인라인 다이얼로그 편집) + 홈 상단 경고 banner (초과 카테고리 N개, 탭 → 설정 화면). FCM 푸시 알림은 v1.1 FCM 항목 진행 시 함께 연동.
 - [ ] 영수증 단계적 압축/삭제 배치 잡 (1년: 800px/60%, 5년: 삭제)
 - [ ] 백업 자동화 (MariaDB 일일 덤프, Cloudflare R2 주 1회)
 
