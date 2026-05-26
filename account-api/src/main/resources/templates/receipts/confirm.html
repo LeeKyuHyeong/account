@@ -8,50 +8,53 @@
 
     <!-- 신뢰도 분기 -->
     <div th:if="${autoConfirmable}" class="alert alert-success py-2">
-      신뢰도 <span th:text="${confidencePct}">90</span>% — 분석 결과가 정확해 보입니다. 그대로 확정하세요.
+      신뢰도 <span th:text="${confidencePct}">90</span>% — 분석 결과가 정확해 보입니다. 확인 후 확정하세요.
     </div>
     <div th:if="${!autoConfirmable and !requiresManual}" class="alert alert-warning py-2">
-      신뢰도 <span th:text="${confidencePct}">65</span>% — 카테고리를 한 번 확인해 주세요.
+      신뢰도 <span th:text="${confidencePct}">65</span>% — 값을 한 번 확인해 주세요.
     </div>
     <div th:if="${requiresManual}" class="alert alert-danger py-2">
-      신뢰도 <span th:text="${confidencePct}">30</span>% — 카테고리를 직접 선택해야 확정할 수 있습니다.
+      신뢰도 <span th:text="${confidencePct}">30</span>% — 값을 확인하고 카테고리를 선택해야 확정됩니다.
     </div>
 
-    <!-- 분석 결과 (금액/일시/상점은 읽기 전용 — 본격 편집은 별도) -->
-    <div class="card mb-3">
-      <div class="card-body small">
-        <div class="d-flex justify-content-between py-1">
-          <span class="text-muted">상점</span>
-          <span th:text="${analysis.merchant} ?: '-'">-</span>
-        </div>
-        <div class="d-flex justify-content-between py-1">
-          <span class="text-muted">금액</span>
-          <span th:text="${#numbers.formatInteger(tx.amount, 0, 'COMMA')} + '원'">0원</span>
-        </div>
-        <div class="d-flex justify-content-between py-1">
-          <span class="text-muted">일시</span>
-          <span th:text="${#temporals.format(tx.occurredAt, 'yyyy-MM-dd HH:mm')}">-</span>
-        </div>
-        <div class="d-flex justify-content-between py-1">
-          <span class="text-muted">결제수단</span>
-          <span th:text="${analysis.paymentMethod} ?: '-'">-</span>
-        </div>
-      </div>
-    </div>
+    <p class="text-muted small">
+      분석 원본: 상점 "<span th:text="${analysis.merchant} ?: '-'">-</span>" ·
+      카테고리 추정 "<span th:text="${analysis.category} ?: '-'">-</span>"
+    </p>
 
-    <!-- 컨펌: 기존 거래 수정 엔드포인트 재사용 (카테고리 + DRAFT→CONFIRMED) -->
+    <!-- 컨펌 = 전체 편집 + 확정 (기존 거래 수정 엔드포인트 재사용). 분석값이 미리 채워짐 — 틀리면 고쳐서 확정. -->
     <form method="post" th:action="@{/web/transactions/{id}(id=${tx.id})}">
       <input type="hidden" name="confirm" value="true">
       <div class="mb-3">
-        <label class="form-label">
-          카테고리
-          <span class="text-muted small">(분석 추정: <span th:text="${analysis.category} ?: '없음'">기타</span>)</span>
-        </label>
+        <label class="form-label">카테고리</label>
         <select name="categoryId" id="categorySelect" class="form-select">
           <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
                   th:selected="${c.id == tx.categoryId}"></option>
         </select>
       </div>
+      <div class="mb-3">
+        <label class="form-label">금액 (원)</label>
+        <input type="number" step="0.01" min="0" name="amount" class="form-control"
+               th:value="${tx.amount}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">일시</label>
+        <input type="datetime-local" name="occurredAt" class="form-control"
+               th:value="${#temporals.format(tx.occurredAt, 'yyyy-MM-dd''T''HH:mm')}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">상점</label>
+        <input type="text" name="merchant" class="form-control" th:value="${tx.merchant}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">결제수단</label>
+        <input type="text" name="paymentMethod" class="form-control" th:value="${tx.paymentMethod}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">메모 <span class="text-muted small">(선택)</span></label>
+        <textarea name="memo" class="form-control" rows="2" th:text="${tx.memo}"></textarea>
+      </div>
+
       <div class="d-grid gap-2">
         <button type="submit" id="confirmBtn" class="btn btn-primary"
                 th:disabled="${requiresManual}">확정</button>

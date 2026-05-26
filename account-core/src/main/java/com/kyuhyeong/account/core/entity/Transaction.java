@@ -116,6 +116,22 @@ public class Transaction {
         this.updatedBy = by;
     }
 
+    /**
+     * 사용자 편집 (전체 필드 일괄 갱신). 카테고리/금액/일시는 NOT NULL 이므로 항상 값이 와야 하고,
+     * 상점/결제수단/메모는 null 허용(비우기 가능). 상태(DRAFT↔CONFIRMED) 전이는 {@link #confirm}
+     * 이 담당하므로 여기서 건드리지 않는다.
+     */
+    public void edit(Category category, BigDecimal amount, LocalDateTime occurredAt,
+                     String merchant, String paymentMethod, String memo, User by) {
+        this.category = category;
+        this.amount = amount;
+        this.occurredAt = occurredAt;
+        this.merchant = merchant;
+        this.paymentMethod = paymentMethod;
+        this.memo = memo;
+        this.updatedBy = by;
+    }
+
     public void softDelete(User by) {
         this.deletedAt = LocalDateTime.now();
         this.updatedBy = by;

@@ -4,7 +4,6 @@ import com.kyuhyeong.account.api.security.CustomUserDetails;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
-import com.kyuhyeong.account.api.transaction.TransactionDtos.UpdateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionService;
 import com.kyuhyeong.account.api.transaction.TransactionService.TransactionListQuery;
 import com.kyuhyeong.account.core.enums.CategoryType;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -131,11 +131,22 @@ public class WebTransactionController {
     @PostMapping("/{id}")
     public String update(@PathVariable Long id,
                          @RequestParam Long categoryId,
+                         @RequestParam BigDecimal amount,
+                         @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime occurredAt,
+                         @RequestParam(required = false) String merchant,
+                         @RequestParam(required = false) String paymentMethod,
+                         @RequestParam(required = false) String memo,
                          @RequestParam(required = false) Boolean confirm,
                          @AuthenticationPrincipal CustomUserDetails user) {
-        TransactionStatus status = Boolean.TRUE.equals(confirm) ? TransactionStatus.CONFIRMED : null;
-        transactionService.update(id, new UpdateTransactionRequest(categoryId, status), user.getUserId());
+        transactionService.edit(id, new TransactionService.EditRequest(
+                categoryId, amount, occurredAt,
+                emptyToNull(merchant), emptyToNull(paymentMethod), emptyToNull(memo),
+                Boolean.TRUE.equals(confirm)), user.getUserId());
         return "redirect:/web/transactions";
+    }
+
+    private static String emptyToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
     }
 
     private static Map<String, String> fieldErrors(BindingResult binding) {
