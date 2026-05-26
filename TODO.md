@@ -23,7 +23,7 @@
 ```
 M0 기반:    ▓▓▓▓▓▓▓  레이아웃 + app.css + 에러페이지 완료
 M1 핵심:    ▓▓▓▓▓▓▓  홈 + 거래 목록/입력/수정 완료 (findById 격리 누수 수정 포함)
-M2 영수증:  ░░░░░░░  업로드 → 분석 → 컨펌
+M2 영수증:  ▓▓▓▓▓▓░  업로드/검증/컨펌 화면 완료 / 실제 Claude 분석 happy-path 는 사용자 수동 검증
 M3 대시보드:░░░░░░░  추이 차트 + 예산 + 순자산
 M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신화 (전체 완료 후)
 ```
@@ -74,11 +74,11 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 
 대체 대상: `receipt_capture_screen` / `receipt_confirmation_screen`
 
-- [ ] **업로드 폼** (`GET /web/receipts/new`) — `<input type="file" accept="image/*" capture>` (모바일 브라우저 카메라). 서버 multipart 10MB 제한 활용. 클라 압축은 일단 생략(필요 시 canvas 리사이즈 최소 JS 로 추가)
-- [ ] **분석 → 컨펌** (`POST /web/receipts`) — `ReceiptIngestionService.ingest` 호출 → 컨펌 페이지 렌더
-- [ ] 신뢰도 분기 UI — ≥0.8 자동확정 권장 / 0.5~0.8 확인요청 / <0.5 수동변경 강제 (서버 렌더 + 버튼 활성/비활성)
-- [ ] 컨펌 → DRAFT→CONFIRMED → 거래 목록으로 리다이렉트
-- 검증: 실제 영수증 이미지 + Claude 키 환경에서 업로드 → DRAFT 생성 → 컨펌 (사용자 수동).
+- [x] **업로드 폼** (`GET /web/receipts/new`, `WebReceiptController`) — `<input type="file" accept="image/*" capture>` (모바일 브라우저 카메라). 서버 multipart 10MB. 클라 압축 생략. 홈에 "영수증 촬영" 진입 버튼
+- [x] **분석 → 컨펌** (`POST /web/receipts`) — `ReceiptIngestionService.ingest` 재사용 → DRAFT 생성 → `receipts/confirm.html` 렌더. 검증 실패/`AnalysisException` 시 폼 재렌더(에러 표시)
+- [x] 신뢰도 분기 UI — ≥0.8 success / 0.5~0.8 warning / <0.5 danger banner. <0.5 는 카테고리 변경 전 확정 버튼 비활성(최소 JS)
+- [x] 컨펌 → **기존 `POST /web/transactions/{id}`(update, confirm=true) 재사용** (별도 엔드포인트 X) → DRAFT→CONFIRMED → 목록 리다이렉트
+- 검증: ✅ 업로드 폼, 비이미지 거부(멀티파트+CSRF+검증+에러 재렌더), 컨펌 3개 신뢰도 분기 렌더(임시 프리뷰 라우트로 확인 후 제거). ⏸️ **실제 영수증 + Claude 키 happy-path 는 유료라 사용자 수동 검증** (업로드→DRAFT→컨펌→CONFIRMED)
 
 ## P1 — M3. 대시보드
 

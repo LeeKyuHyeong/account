@@ -66,6 +66,8 @@ desktop.ini
 test-receipts/
 sample-receipts/
 **/receipts/
+# 단, 소스 템플릿 디렉토리는 영수증 이미지 저장소가 아니므로 추적한다 (위 광범위 패턴 예외).
+!account-api/src/main/resources/templates/receipts/
 # 루트의 ./data/ 만 차단 (Docker volume + 영수증 저장소). 소스 디렉토리의 *features/.../data/*
 # 같은 이름은 영향 없도록 leading slash 로 고정.
 /data/
