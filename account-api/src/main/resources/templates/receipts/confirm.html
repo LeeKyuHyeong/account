@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('영수증 확인', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <h1 class="h5 mb-3">영수증 확인</h1>
+
+    <!-- 신뢰도 분기 -->
+    <div th:if="${autoConfirmable}" class="alert alert-success py-2">
+      신뢰도 <span th:text="${confidencePct}">90</span>% — 분석 결과가 정확해 보입니다. 그대로 확정하세요.
+    </div>
+    <div th:if="${!autoConfirmable and !requiresManual}" class="alert alert-warning py-2">
+      신뢰도 <span th:text="${confidencePct}">65</span>% — 카테고리를 한 번 확인해 주세요.
+    </div>
+    <div th:if="${requiresManual}" class="alert alert-danger py-2">
+      신뢰도 <span th:text="${confidencePct}">30</span>% — 카테고리를 직접 선택해야 확정할 수 있습니다.
+    </div>
+
+    <!-- 분석 결과 (금액/일시/상점은 읽기 전용 — 본격 편집은 별도) -->
+    <div class="card mb-3">
+      <div class="card-body small">
+        <div class="d-flex justify-content-between py-1">
+          <span class="text-muted">상점</span>
+          <span th:text="${analysis.merchant} ?: '-'">-</span>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+          <span class="text-muted">금액</span>
+          <span th:text="${#numbers.formatInteger(tx.amount, 0, 'COMMA')} + '원'">0원</span>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+          <span class="text-muted">일시</span>
+          <span th:text="${#temporals.format(tx.occurredAt, 'yyyy-MM-dd HH:mm')}">-</span>
+        </div>
+        <div class="d-flex justify-content-between py-1">
+          <span class="text-muted">결제수단</span>
+          <span th:text="${analysis.paymentMethod} ?: '-'">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 컨펌: 기존 거래 수정 엔드포인트 재사용 (카테고리 + DRAFT→CONFIRMED) -->
+    <form method="post" th:action="@{/web/transactions/{id}(id=${tx.id})}">
+      <input type="hidden" name="confirm" value="true">
+      <div class="mb-3">
+        <label class="form-label">
+          카테고리
+          <span class="text-muted small">(분석 추정: <span th:text="${analysis.category} ?: '없음'">기타</span>)</span>
+        </label>
+        <select name="categoryId" id="categorySelect" class="form-select">
+          <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
+                  th:selected="${c.id == tx.categoryId}"></option>
+        </select>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" id="confirmBtn" class="btn btn-primary"
+                th:disabled="${requiresManual}">확정</button>
+        <a th:href="@{/web/transactions}" class="btn btn-outline-secondary">목록으로</a>
+      </div>
+    </form>
+
+    <!-- 저신뢰도: 카테고리를 바꿔야만 확정 버튼 활성화 (최소 JS) -->
+    <script th:if="${requiresManual}">
+      (function () {
+        var sel = document.getElementById('categorySelect');
+        var btn = document.getElementById('confirmBtn');
+        var initial = sel.value;
+        sel.addEventListener('change', function () {
+          btn.disabled = (sel.value === initial);
+        });
+      })();
+    </script>
+
+  </th:block>
+</th:block>
+</body>
+</html>
