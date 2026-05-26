@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('수입·지출 추이', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <h1 class="h5 mb-3">최근 6개월 추이</h1>
+
+    <div class="card">
+      <div class="card-body">
+        <canvas id="trendChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const labels = /*[[${labels}]]*/ [];
+      const incomes = /*[[${incomes}]]*/ [];
+      const expenses = /*[[${expenses}]]*/ [];
+      const surpluses = /*[[${surpluses}]]*/ [];
+      new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '수입', data: incomes, borderColor: '#198754', backgroundColor: '#198754', tension: 0.2 },
+            { label: '지출', data: expenses, borderColor: '#dc3545', backgroundColor: '#dc3545', tension: 0.2 },
+            { label: '잉여', data: surpluses, borderColor: '#0d6efd', backgroundColor: '#0d6efd', tension: 0.2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { ticks: { callback: function (v) { return (v / 10000) + '만'; } } } }
+        }
+      });
+      /*]]>*/
+    </script>
+
+  </th:block>
+</th:block>
+</body>
+</html>

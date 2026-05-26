@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('예산', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <h1 class="h5 mb-1">예산</h1>
+    <p class="text-muted small mb-3" th:text="${monthLabel} + ' 사용 현황'">2026년 5월 사용 현황</p>
+
+    <div th:each="row : ${rows}" class="mb-3">
+      <div class="d-flex justify-content-between small">
+        <span th:text="${row.name}">식비</span>
+        <span th:classappend="${row.over} ? 'text-danger fw-semibold' : 'text-muted'">
+          <span th:text="${#numbers.formatInteger(row.total, 0, 'COMMA')}">0</span> /
+          <span th:text="${row.budget.signum() > 0 ? #numbers.formatInteger(row.budget, 0, 'COMMA') : '미설정'}">0</span>원
+          <span th:if="${row.over}" th:text="'(' + ${row.pct} + '%)'">(120%)</span>
+        </span>
+      </div>
+      <div class="progress mt-1" style="height: 6px;" th:if="${row.budget.signum() > 0}">
+        <div class="progress-bar" th:classappend="${row.over} ? 'bg-danger' : 'bg-success'"
+             th:style="|width: ${row.pct > 100 ? 100 : row.pct}%;|"></div>
+      </div>
+      <form method="post" th:action="@{/web/budget}" class="input-group input-group-sm mt-1">
+        <input type="hidden" name="categoryId" th:value="${row.categoryId}">
+        <input type="number" step="1" min="0" name="budgetMonthly" class="form-control"
+               th:value="${row.budget.signum() > 0 ? row.budget : ''}" placeholder="예산 입력 (원)">
+        <button class="btn btn-outline-secondary" type="submit">저장</button>
+      </form>
+    </div>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>
