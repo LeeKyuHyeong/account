@@ -24,6 +24,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -91,9 +92,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse create(CreateTransactionRequest request, Long authorUserId) {
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Category not found or not in current household: " + request.categoryId()));
+        Category category = findOwnedCategory(request.categoryId());
 
         Long householdId = HouseholdContext.get();
         Household household = householdRepository.getReferenceById(householdId);
@@ -140,9 +139,7 @@ public class TransactionService {
 
         if (request.categoryId() != null
                 && !request.categoryId().equals(tx.getCategory().getId())) {
-            Category newCategory = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Category not found or not in current household: " + request.categoryId()));
+            Category newCategory = findOwnedCategory(request.categoryId());
             tx.reassignCategory(newCategory, actor);
             changed = true;
         }
@@ -164,6 +161,50 @@ public class TransactionService {
             }
         }
         return TransactionResponse.from(tx);
+    }
+
+    /**
+     * 전체 편집 — 카테고리 + 금액 / 일시 / 상점 / 결제수단 / 메모. 웹 거래 수정 / 영수증 컨펌 화면에서 사용.
+     * confirm=true 이고 현재 DRAFT 면 CONFIRMED 로 승격. 변경 이력은 logUpdate, 학습은 CONFIRMED 시 upsert.
+     */
+    @Transactional
+    public TransactionResponse edit(Long id, EditRequest request, Long actorUserId) {
+        if (request.amount() == null || request.amount().signum() <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (request.occurredAt() == null) {
+            throw new IllegalArgumentException("occurredAt is required");
+        }
+        Transaction tx = findOwnedById(id);
+        if (tx.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Cannot update deleted transaction: " + id);
+        }
+        TransactionHistoryService.Snapshot before = TransactionHistoryService.Snapshot.from(tx);
+        User actor = userRepository.getReferenceById(actorUserId);
+        Category category = findOwnedCategory(request.categoryId());
+
+        tx.edit(category, request.amount(), request.occurredAt(),
+                request.merchant(), request.paymentMethod(), request.memo(), actor);
+        if (request.confirm() && tx.getStatus() == TransactionStatus.DRAFT) {
+            tx.confirm(actor);
+        }
+        historyService.logUpdate(tx, before, actorUserId);
+        if (tx.getStatus() == TransactionStatus.CONFIRMED) {
+            merchantHistoryService.upsert(tx.getMerchant(), tx.getCategory());
+        }
+        return TransactionResponse.from(tx);
+    }
+
+    /**
+     * 카테고리 단건 해석 — {@code findAll()}(householdFilter 적용)에서 id 매칭. {@code findById}
+     * (PK 직접 로드)는 필터가 안 걸려 다른 가구 카테고리도 할당 가능한 누수가 있으므로 쓰지 않는다.
+     */
+    private Category findOwnedCategory(Long categoryId) {
+        return categoryRepository.findAll().stream()
+                .filter(c -> c.getId().equals(categoryId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Category not found or not in current household: " + categoryId));
     }
 
     private Specification<Transaction> buildSpec(TransactionListQuery query) {
@@ -201,6 +242,18 @@ public class TransactionService {
             TransactionStatus status,
             int page,
             int size
+    ) {
+    }
+
+    /** 전체 편집 요청 — 웹 거래 수정 / 영수증 컨펌 화면이 폼 값으로 채운다. */
+    public record EditRequest(
+            Long categoryId,
+            BigDecimal amount,
+            LocalDateTime occurredAt,
+            String merchant,
+            String paymentMethod,
+            String memo,
+            boolean confirm
     ) {
     }
 }

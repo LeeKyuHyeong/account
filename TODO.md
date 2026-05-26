@@ -80,7 +80,7 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 - [x] 컨펌 → **기존 `POST /web/transactions/{id}`(update, confirm=true) 재사용** (별도 엔드포인트 X) → DRAFT→CONFIRMED → 목록 리다이렉트
 - [x] **🐛 Claude 호출 직렬화 버그 수정**: `ClaudeVisionClient` 의 image content 블록에 `"text":null` 이 섞여 나가 Anthropic 400("Extra inputs are not permitted"). content 블록 record 에 `@JsonInclude(NON_NULL)` 적용 + 직렬화 회귀 테스트. (실제 Claude 호출이 이번이 처음이라 그동안 미발견)
 - 검증: ✅ 업로드 폼, 비이미지 거부(멀티파트+CSRF+검증+에러 재렌더), 컨펌 3개 신뢰도 분기. ✅ **실제 영수증 happy-path 수동 검증 완료** (업로드 → Claude 분석(신뢰도 75% → 확인 banner) → 컨펌). 인코딩 정상 (Claude raw JSON = DB = 표시 일치; 한글 OCR 오독은 모델 정확도 이슈, 코드 무관)
-- [ ] **(후속) 컨펌/수정 화면에서 금액·상점·일시 편집 불가** — OCR 오독 시 카테고리만 수정 가능. 전체 편집은 `UpdateTransactionRequest` 확장 + 편집 폼 필요 (실사용 테스트에서 발견)
+- [x] **전체 필드 편집** (실사용 요청) — 거래 수정 + 영수증 컨펌 화면에서 금액·일시·상점·결제수단·메모·카테고리 모두 편집 가능. `Transaction.edit()` 비즈니스 메서드 + `TransactionService.edit(EditRequest)` + 변경 이력 logUpdate. OCR 오독을 컨펌 화면에서 바로 수정 가능. 카테고리 해석도 `findById` → findAll+filter 로 격리 안전화 (create/update/edit 공통)
 
 ## P1 — M3. 대시보드
 
