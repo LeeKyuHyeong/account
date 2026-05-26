@@ -24,7 +24,7 @@
 M0 기반:    ▓▓▓▓▓▓▓  레이아웃 + app.css + 에러페이지 완료
 M1 핵심:    ▓▓▓▓▓▓▓  홈 + 거래 목록/입력/수정 완료 (findById 격리 누수 수정 포함)
 M2 영수증:  ▓▓▓▓▓▓░  업로드/검증/컨펌 화면 완료 / 실제 Claude 분석 happy-path 는 사용자 수동 검증
-M3 대시보드:░░░░░░░  추이 차트 + 예산 + 순자산
+M3 대시보드:▓▓▓▓▓▓░  추이/예산/순자산 완료 (순자산 편집 유예) + 순자산 findById 격리 누수 수정
 M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신화 (전체 완료 후)
 ```
 
@@ -84,10 +84,13 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 
 대체 대상: `trend_screen` / `budget_screen` / `networth_screen` / `networth_form_screen` / `networth_trend_screen`
 
-- [ ] **추이 차트** (`GET /web/trend`) — 시계열 집계 → Chart.js 라인(수입 / 지출 / 잉여), 최근 6개월 기본
-- [ ] **예산 설정** (`GET/POST /web/budget`) — 카테고리별 예산 편집 + 진행률 bar
-- [ ] **순자산** (`GET /web/networth`) — 자산 / 부채 목록·CRUD + 스냅샷 + 12개월 추이(Chart.js, 자산 / 부채 / 순자산 3선)
-- 검증: 각 페이지 데이터 정확성 + 차트 렌더 + 가구 격리.
+- [x] **추이 차트** (`GET /web/trend`, `WebTrendController`) — `MonthlySummaryService.series` 최근 6개월 → Chart.js 라인(수입/지출/잉여). 데이터는 `th:inline="javascript"` 로 주입
+- [x] **예산 설정** (`GET/POST /web/budget`, `WebBudgetController`) — 이번 달 지출 카테고리 진행률 bar + 초과 강조 + 카테고리별 예산 수정. 예산 수정은 `CategoryQueryService.updateBudget`(findAll+filter, 격리 안전)
+- [x] **순자산** (`GET /web/networth`, `WebNetWorthController`) — 스냅샷(자산/부채 목록 + 합계 + 순자산) + 12개월 Chart.js 추이(자산/부채/순자산 3선) + 자산/부채 추가·삭제 + 월 선택
+- [ ] **순자산 편집 유예** — 월별 스냅샷 모델상 삭제 후 재추가로 갈음. 필요 시 후속(인라인 편집 또는 편집 페이지)
+- [x] **🔒 격리 누수 수정**: `NetWorthService.updateAsset/deleteAsset/updateLiability/deleteLiability` 가 `findById`(PK 직접 로드 → `@Filter` 미적용) 쓰던 것을 `findOne(Specification)` 로 교체 (M1 거래와 동일 패턴, 기존 REST 에도 있던 누수)
+- [x] Chart.js CDN — 차트 페이지에서 페이지별 include (전역 X)
+- 검증: ✅ 추이 labels/데이터 주입, 예산 설정·영속·진행률, 순자산 추가→합계 반영→삭제→0 복귀, 12개월 추이. 격리: owner2 가 owner1 자산 삭제 시 400 차단·자산 생존. 홈에 추이/예산/순자산 링크
 
 ## P2 — M4. 정리 (순수 SSR 단일화)
 

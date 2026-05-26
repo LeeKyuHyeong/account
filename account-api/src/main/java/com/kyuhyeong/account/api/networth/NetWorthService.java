@@ -121,9 +121,7 @@ public class NetWorthService {
 
     @Transactional
     public AssetResponse updateAsset(Long id, UpdateRequest request) {
-        Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Asset not found or not in current household: " + id));
+        Asset asset = findOwnedAsset(id);
         asset.edit(
                 request.name(), request.type(), request.balance(),
                 request.yearMonth() == null ? null : parseYearMonth(request.yearMonth()).atDay(1)
@@ -133,9 +131,7 @@ public class NetWorthService {
 
     @Transactional
     public void deleteAsset(Long id) {
-        Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Asset not found or not in current household: " + id));
+        Asset asset = findOwnedAsset(id);
         assetRepository.delete(asset);
     }
 
@@ -155,9 +151,7 @@ public class NetWorthService {
 
     @Transactional
     public LiabilityResponse updateLiability(Long id, UpdateRequest request) {
-        Liability liability = liabilityRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Liability not found or not in current household: " + id));
+        Liability liability = findOwnedLiability(id);
         liability.edit(
                 request.name(), request.type(), request.balance(),
                 request.yearMonth() == null ? null : parseYearMonth(request.yearMonth()).atDay(1)
@@ -167,10 +161,25 @@ public class NetWorthService {
 
     @Transactional
     public void deleteLiability(Long id) {
-        Liability liability = liabilityRepository.findById(id)
+        Liability liability = findOwnedLiability(id);
+        liabilityRepository.delete(liability);
+    }
+
+    /**
+     * id 단건 조회. {@code findOne(Specification)}(criteria 쿼리)로 Hibernate {@code @Filter} 가
+     * 적용되게 한다 — {@code findById}(=EntityManager.find, PK 직접 로드)는 필터가 안 걸려 다른
+     * 가구의 자산/부채도 수정·삭제 가능한 격리 누수가 있다.
+     */
+    private Asset findOwnedAsset(Long id) {
+        return assetRepository.findOne((root, cq, cb) -> cb.equal(root.get("id"), id))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Asset not found or not in current household: " + id));
+    }
+
+    private Liability findOwnedLiability(Long id) {
+        return liabilityRepository.findOne((root, cq, cb) -> cb.equal(root.get("id"), id))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Liability not found or not in current household: " + id));
-        liabilityRepository.delete(liability);
     }
 
     private static <T> Specification<T> monthMatches(String field, LocalDate firstDayOfMonth) {

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 
@@ -27,5 +28,20 @@ public class CategoryQueryService {
         return categoryRepository.findAll().stream()
                 .sorted(Comparator.comparingInt(Category::getSortOrder))
                 .toList();
+    }
+
+    /**
+     * 카테고리 월 예산 수정. {@code findAll()}(householdFilter 적용) 에서 id 로 찾는다 —
+     * {@code findById}(PK 직접 로드)는 필터가 안 걸려 다른 가구 카테고리도 수정 가능한 격리
+     * 누수가 있으므로 쓰지 않는다. 가구당 카테고리는 ~수십 개라 in-memory 필터로 충분.
+     */
+    @Transactional
+    public void updateBudget(Long categoryId, BigDecimal budgetMonthly) {
+        Category category = categoryRepository.findAll().stream()
+                .filter(c -> c.getId().equals(categoryId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Category not found in current household: " + categoryId));
+        category.updateBudget(budgetMonthly);
     }
 }

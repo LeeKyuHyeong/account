@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('순자산', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h5 mb-0">순자산</h1>
+      <form method="get" th:action="@{/web/networth}" class="d-flex">
+        <input type="month" name="ym" th:value="${month}" class="form-control form-control-sm"
+               onchange="this.form.submit()">
+      </form>
+    </div>
+
+    <!-- 합계 -->
+    <div class="card mb-3">
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">자산</span>
+          <span th:text="${#numbers.formatInteger(snapshot.assetsTotal, 0, 'COMMA')} + '원'">0원</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">부채</span>
+          <span th:text="${#numbers.formatInteger(snapshot.liabilitiesTotal, 0, 'COMMA')} + '원'">0원</span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between fw-semibold">
+          <span>순자산</span>
+          <span th:classappend="${snapshot.netWorth.signum() < 0} ? 'text-danger' : 'text-success'"
+                th:text="${#numbers.formatInteger(snapshot.netWorth, 0, 'COMMA')} + '원'">0원</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12개월 추이 -->
+    <div class="card mb-3">
+      <div class="card-body"><canvas id="nwChart" height="200"></canvas></div>
+    </div>
+
+    <!-- 자산 -->
+    <h2 class="h6 mt-4">자산</h2>
+    <ul class="list-group mb-2">
+      <li th:each="a : ${snapshot.assets}" class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+          <span th:text="${a.name}">현금</span>
+          <span class="text-muted small" th:text="'· ' + ${a.type}">· 예금</span>
+        </span>
+        <span class="d-flex align-items-center gap-2">
+          <span th:text="${#numbers.formatInteger(a.balance, 0, 'COMMA')} + '원'">0원</span>
+          <form method="post" th:action="@{/web/networth/assets/{id}/delete(id=${a.id})}">
+            <input type="hidden" name="ym" th:value="${month}">
+            <button class="btn btn-link btn-sm text-danger p-0" type="submit">삭제</button>
+          </form>
+        </span>
+      </li>
+      <li th:if="${snapshot.assets.isEmpty()}" class="list-group-item text-muted small">자산이 없습니다.</li>
+    </ul>
+    <form method="post" th:action="@{/web/networth/assets}" class="row g-1 mb-4">
+      <div class="col-4"><input name="name" class="form-control form-control-sm" placeholder="이름" required></div>
+      <div class="col-3"><input name="type" class="form-control form-control-sm" placeholder="종류" required></div>
+      <div class="col-3"><input type="number" name="balance" min="0" step="1" class="form-control form-control-sm" placeholder="잔액" required></div>
+      <input type="hidden" name="yearMonth" th:value="${month}">
+      <div class="col-2 d-grid"><button class="btn btn-outline-primary btn-sm" type="submit">+</button></div>
+    </form>
+
+    <!-- 부채 -->
+    <h2 class="h6">부채</h2>
+    <ul class="list-group mb-2">
+      <li th:each="l : ${snapshot.liabilities}" class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+          <span th:text="${l.name}">대출</span>
+          <span class="text-muted small" th:text="'· ' + ${l.type}">· 신용</span>
+        </span>
+        <span class="d-flex align-items-center gap-2">
+          <span th:text="${#numbers.formatInteger(l.balance, 0, 'COMMA')} + '원'">0원</span>
+          <form method="post" th:action="@{/web/networth/liabilities/{id}/delete(id=${l.id})}">
+            <input type="hidden" name="ym" th:value="${month}">
+            <button class="btn btn-link btn-sm text-danger p-0" type="submit">삭제</button>
+          </form>
+        </span>
+      </li>
+      <li th:if="${snapshot.liabilities.isEmpty()}" class="list-group-item text-muted small">부채가 없습니다.</li>
+    </ul>
+    <form method="post" th:action="@{/web/networth/liabilities}" class="row g-1 mb-3">
+      <div class="col-4"><input name="name" class="form-control form-control-sm" placeholder="이름" required></div>
+      <div class="col-3"><input name="type" class="form-control form-control-sm" placeholder="종류" required></div>
+      <div class="col-3"><input type="number" name="balance" min="0" step="1" class="form-control form-control-sm" placeholder="잔액" required></div>
+      <input type="hidden" name="yearMonth" th:value="${month}">
+      <div class="col-2 d-grid"><button class="btn btn-outline-primary btn-sm" type="submit">+</button></div>
+    </form>
+
+    <div class="d-grid gap-2">
+      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const labels = /*[[${labels}]]*/ [];
+      const assetsSeries = /*[[${assetsSeries}]]*/ [];
+      const liabilitiesSeries = /*[[${liabilitiesSeries}]]*/ [];
+      const netWorthSeries = /*[[${netWorthSeries}]]*/ [];
+      new Chart(document.getElementById('nwChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '자산', data: assetsSeries, borderColor: '#198754', tension: 0.2 },
+            { label: '부채', data: liabilitiesSeries, borderColor: '#dc3545', tension: 0.2 },
+            { label: '순자산', data: netWorthSeries, borderColor: '#0d6efd', tension: 0.2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { ticks: { callback: function (v) { return (v / 10000) + '만'; } } } }
+        }
+      });
+      /*]]>*/
+    </script>
+
+  </th:block>
+</th:block>
+</body>
+</html>
