@@ -143,7 +143,7 @@ class NetWorthServiceTest {
                 .recordedAt(LocalDate.of(2026, 5, 1))
                 .build();
         ReflectionTestUtils.setField(asset, "id", 7L);
-        when(assetRepository.findById(7L)).thenReturn(Optional.of(asset));
+        when(assetRepository.findOne(any(Specification.class))).thenReturn(Optional.of(asset));
 
         // 잔액만 변경, yearMonth 도 변경. 이름/타입은 그대로.
         var response = service.updateAsset(7L, new UpdateRequest(
@@ -158,7 +158,7 @@ class NetWorthServiceTest {
     @Test
     @DisplayName("updateAsset: 존재하지 않거나 다른 가구면 IllegalArgumentException")
     void updateAssetRejectsMissing() {
-        when(assetRepository.findById(404L)).thenReturn(Optional.empty());
+        when(assetRepository.findOne(any(Specification.class))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.updateAsset(404L,
                 new UpdateRequest(null, null, new BigDecimal("1"), null)))
@@ -170,7 +170,7 @@ class NetWorthServiceTest {
     @DisplayName("deleteAsset: 존재하면 repository.delete 호출")
     void deleteAssetCallsRepository() {
         Asset asset = Asset.builder().build();
-        when(assetRepository.findById(1L)).thenReturn(Optional.of(asset));
+        when(assetRepository.findOne(any(Specification.class))).thenReturn(Optional.of(asset));
         service.deleteAsset(1L);
         verify(assetRepository, times(1)).delete(asset);
     }
@@ -178,7 +178,7 @@ class NetWorthServiceTest {
     @Test
     @DisplayName("deleteAsset: 다른 가구이거나 미존재면 IllegalArgumentException + delete 호출 X")
     void deleteAssetRejectsMissing() {
-        when(assetRepository.findById(2L)).thenReturn(Optional.empty());
+        when(assetRepository.findOne(any(Specification.class))).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.deleteAsset(2L))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(assetRepository, never()).delete(any(Asset.class));
