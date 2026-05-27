@@ -1,76 +1,34 @@
-# account.kyuhyeong.com 리버스 프록시 (호스트 nginx 에 배치).
+# account.kyuhyeong.com 리버스 프록시 (호스트 nginx, /etc/nginx/conf.d/ 에 배치).
 #
-# 적용 위치:
-#   /etc/nginx/sites-available/account.kyuhyeong.com.conf
-#   → /etc/nginx/sites-enabled/account.kyuhyeong.com.conf 심볼릭 링크
+# 기존 game/itsm 과 동일한 certbot-managed 패턴:
+#   1. DNS A 레코드: account.kyuhyeong.com → VPS IP
+#   2. docker compose 운영 stack 기동 (account-api 가 127.0.0.1:8085 노출)
+#   3. 본 server 블록을 /etc/nginx/conf.d/account.kyuhyeong.com.conf 로 두고
+#      sudo nginx -t && sudo systemctl reload nginx
+#   4. sudo certbot --nginx -d account.kyuhyeong.com
+#      → certbot 이 listen 443 ssl + 인증서 경로 + 80→443 리다이렉트 server 블록을 자동 추가
+#      (game/itsm 도 동일하게 생성돼 있음)
 #
-# 적용 흐름:
-#   1. DNS A 레코드 추가: account.kyuhyeong.com → VPS IP
-#   2. 호스트의 docker compose 운영 stack 기동 (account-api 가 127.0.0.1:8080 노출)
-#   3. 본 파일을 sites-available/ 에 복사 (예: 1차에 HTTP only 만 두고 발급 → HTTPS 추가)
-#   4. nginx -t 검증 후 reload
-#   5. certbot --nginx -d account.kyuhyeong.com 으로 Let's Encrypt 발급
-#      (certbot 이 자동으로 본 파일에 ssl_certificate / 443 server 블록 삽입)
-#
-# 본 예시는 certbot 발급 완료 후의 최종 형태. 첫 발급 전에는
-# 80 server 블록만 두고 certbot 이 ACME challenge 통과 후 HTTPS 블록을 자동 추가하는
-# 방식이 가장 단순하다.
+# 호스트 포트 8085 = 기존 8080 portfolio / 8081 shop / 8082 game / 8083 api / 8084 itsm
+# 다음 빈 포트. docker-compose.prod.yml 의 published 포트와 일치해야 한다.
 
-# ─── HTTP → HTTPS 리다이렉트 ───
 server {
-    listen 80;
-    listen [::]:80;
     server_name account.kyuhyeong.com;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
 
-    # certbot ACME challenge 만 80 으로 통과시키고 나머지는 443 으로 리다이렉트.
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-# ─── HTTPS + 리버스 프록시 ───
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name account.kyuhyeong.com;
-
-    # Let's Encrypt 인증서 — certbot 이 자동 갱신 (systemd timer)
-    ssl_certificate     /etc/letsencrypt/live/account.kyuhyeong.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/account.kyuhyeong.com/privkey.pem;
-    ssl_trusted_certificate /etc/letsencrypt/live/account.kyuhyeong.com/chain.pem;
-
-    # TLS 설정은 Mozilla intermediate 권장. certbot 이 options-ssl-nginx.conf 도 자동 include.
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    # 보안 헤더
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # 영수증 업로드 (multipart) 용 — account-api 의 spring.servlet.multipart.max-file-size
-    # (10MB) 와 맞춤. 더 늘리면 양쪽 동시 수정 필요.
+    # 영수증 업로드(multipart) — Spring 의 spring.servlet.multipart.max-file-size(10MB)와 맞춤.
+    # nginx 기본값 1MB 면 영수증 업로드가 413 으로 막힌다.
     client_max_body_size 12m;
 
-    # 로그
-    access_log /var/log/nginx/account.kyuhyeong.com.access.log;
-    error_log  /var/log/nginx/account.kyuhyeong.com.error.log;
-
-    # ─── account-api 프록시 ───
     location / {
-        proxy_pass         http://127.0.0.1:8080;
+        proxy_pass         http://127.0.0.1:8085;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        # SSR: 세션 쿠키 / formLogin 302 리다이렉트가 https 로 생성되도록 (forward-headers-strategy).
         proxy_set_header   X-Forwarded-Proto $scheme;
-        proxy_set_header   X-Forwarded-Host  $host;
-        proxy_set_header   Connection        "";  # HTTP/1.1 keep-alive
+        proxy_set_header   Connection        "";
 
         # 영수증 분석은 Claude API 호출 포함 — 평균 5~15s, 여유 두고 90s.
         proxy_connect_timeout 10s;

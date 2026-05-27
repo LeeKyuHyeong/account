@@ -8,7 +8,7 @@
 #
 # 차이점 (개발용 docker-compose.yml 대비):
 #   - MariaDB 가 호스트에 노출 X (compose 내부 네트워크 전용)
-#   - account-api 는 127.0.0.1:8080 에만 바인딩 (외부 직접 접근 차단, nginx 만 진입점)
+#   - account-api 는 127.0.0.1:8085 에만 바인딩 (외부 직접 접근 차단, nginx 만 진입점)
 #   - 영수증 저장은 /var/lib/account-app/receipts 호스트 볼륨
 #   - DB 데이터도 /var/lib/account-app/mariadb (개발과 분리)
 #   - restart 정책 always (재부팅 후 자동 기동)
@@ -66,9 +66,11 @@ services:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     volumes:
       - /var/lib/account-app/receipts:/mnt/data/receipts
-    # 외부 직접 접근 차단 — 호스트 nginx 만 127.0.0.1:8080 으로 진입.
+    # 외부 직접 접근 차단 — 호스트 nginx 만 127.0.0.1:8085 으로 진입.
+    # 호스트 8085 = 기존 8080 portfolio / 8081 shop / 8082 game / 8083 api / 8084 itsm 다음 빈 포트.
+    # (컨테이너 내부는 8080 그대로. host:container = 8085:8080)
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8085:8080"
     networks:
       - account-net
 
