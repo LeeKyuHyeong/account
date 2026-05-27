@@ -14,8 +14,8 @@ import java.io.IOException;
 /**
  * 세션 인증 경로(/web/**) 용 {@link HouseholdContext} 주입 필터.
  *
- * <p>JWT 경로의 {@link JwtAuthenticationFilter} 가 토큰 클레임에서 householdId 를 꺼내는 것과
- * 동일하게, 여기서는 세션에 저장된 {@link CustomUserDetails} 의 activeHouseholdId 를 꺼낸다.
+ * <p>세션에 저장된 {@link CustomUserDetails} 의 activeHouseholdId 를 꺼내 {@code HouseholdContext}
+ * 에 바인딩한다.
  *
  * <p>finally 블록에서 ThreadLocal clear — 가상 스레드 재사용 시 누수 방지.
  *

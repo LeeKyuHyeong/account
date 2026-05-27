@@ -56,8 +56,7 @@ services:
       ACCOUNT_DB_USER: ${ACCOUNT_DB_USER:-account}
       ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?required}
 
-      # JWT + Claude 시크릿
-      ACCOUNT_JWT_SECRET: ${ACCOUNT_JWT_SECRET:?required}
+      # Claude 시크릿
       ACCOUNT_CLAUDE_API_KEY: ${ACCOUNT_CLAUDE_API_KEY:?required}
 
       # 영수증 저장 경로 — VOLUME 마운트와 일치

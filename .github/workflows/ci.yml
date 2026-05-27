@@ -1,11 +1,6 @@
-# account-app CI — backend (Gradle) + Flutter app.
+# account-app CI — backend (Gradle build + test).
 #
 # 트리거: push to main / develop, 모든 PR.
-# 두 잡은 독립 실행 (병렬). 한 쪽 실패가 다른 쪽 결과를 가리지 않는다.
-#
-# 이미 비활성된 알려진 테스트 (HouseholdIsolationIntegrationTest @Disabled — Windows
-# Docker Desktop 이슈) 는 자동 skip. Linux runner 에서는 enable 시도 가능하나
-# 별도 PR 에서 검증 후 진행.
 
 name: CI
 
@@ -48,38 +43,3 @@ jobs:
             **/build/reports/tests/**
             **/build/test-results/**
           retention-days: 7
-
-  flutter:
-    name: Flutter (analyze + test + APK)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter_app
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 17 (Android Gradle plugin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          # pubspec.yaml 의 environment.sdk 와 호환되는 최신 stable. 명시 버전이 필요해지면
-          # flutter-version: "3.38.x" 형태로 고정.
-          cache: true
-
-      - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: Static analysis
-        run: flutter analyze
-
-      - name: Unit / widget tests
-        run: flutter test
-
-      - name: Build debug APK
-        run: flutter build apk --debug

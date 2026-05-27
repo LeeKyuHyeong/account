@@ -14,11 +14,6 @@
 *.pem
 *.key
 id_rsa*
-# Android upload keystore (Play Store 업로드 키 — 분실 시 같은 패키지명 업데이트 불가)
-**/key.properties
-*.jks
-*.keystore
-!**/key.properties.example
 
 # ───────────────────────────────────────────────────────────────
 # Java / Gradle
@@ -38,20 +33,6 @@ target/
 *.iml
 *.ipr
 *.iws
-
-# ───────────────────────────────────────────────────────────────
-# Flutter (Week 2+ 추가될 flutter-app 모듈 대비)
-# ───────────────────────────────────────────────────────────────
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-ios/Pods/
-ios/.symlinks/
-android/.gradle/
-android/local.properties
 
 # ───────────────────────────────────────────────────────────────
 # OS
