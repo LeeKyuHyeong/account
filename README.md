@@ -3,7 +3,7 @@
 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
 **Repo**: <https://github.com/LeeKyuHyeong/account-app>
-**현재 페이즈**: `Week 1 — 기반 + Multi-tenant 셋업` (Task 1~5 완료, Task 6 진행 예정)
+**현재 페이즈**: Flutter → Thymeleaf SSR 마이그레이션 (M0~M3 완료, M4 레거시 정리). 상세는 [`TODO.md`](TODO.md)
 
 ## 설계 / 작업 지시서
 
@@ -17,10 +17,9 @@
 | 모듈 | 상태 | 책임 |
 |---|---|---|
 | `account-ai` | ✅ 프로토타입 + 멀티 모듈 편입 완료 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
-| `account-api` | 🟢 `JwtAuthenticationFilter` + `AuthController` + `SecurityConfig` (JWT 인증) + 격리 검증 통과 | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
+| `account-api` | 🟢 Thymeleaf SSR + 세션 인증 (`SecurityConfig` 단일 webChain) + 격리 진입점 | SSR 컨트롤러, 세션 인증, 가구 격리 진입점 |
 | `account-core` | 🟢 Entity 12 + `@Filter` 적용 + `HouseholdContext` + `HouseholdFilterAspect` | Entity, Repository, Service. Multi-tenant 격리 본체 |
 | `account-batch` | ⏳ Week 4+ | 월말 집계, 이미지 정리, 알림 발송 |
-| `flutter-app` | ⏳ Week 2+ | 모바일 앱 (iOS/Android) |
 | `docs/` | ✅ 본 문서 | 설계 + 작업 지시서 |
 
 ## Week 1 진행 현황
@@ -34,14 +33,12 @@
 | 5 | JWT 인증 셋업 | ✅ 완료 |
 | 6 | `account-ai` 모듈 멀티 모듈 통합 (`ReceiptController` 이전) | ⏳ 다음 |
 
-> **알려진 이슈**: `HouseholdIsolationIntegrationTest` 는 `@Disabled` 상태. Docker Desktop on Windows 의 CLI 프록시가 Testcontainers 의 docker-java 호출을 가로채는 [알려진 비호환](https://github.com/testcontainers/testcontainers-java/issues) 이슈. Linux CI 또는 Docker Desktop TCP 노출 활성화 시 어노테이션 제거하면 자동 실행. 본 단계에서는 동일 시나리오를 `curl -H "X-Household-Id: N"` 로 수동 검증 (22/5/0 결과 확인).
-
 상세는 [`TODO.md`](TODO.md) 또는 `docs/account.md` §8 참조.
 
 ## 기술 스택
 
 **Backend**: Java 21 (가상 스레드) · Spring Boot 3.3+ · MariaDB 11.x · Hibernate `@Filter` 기반 multi-tenant
-**Mobile**: Flutter · Riverpod · go_router · drift (오프라인 큐)
+**Frontend**: Thymeleaf SSR · Bootstrap · Chart.js (서버 렌더 + 최소 JS, 세션 인증)
 **AI**: Claude Vision API (Sonnet 4.5, 가구별 가맹점 학습)
 **Infra**: kyuhyeong.com VPS · nginx · Docker Compose · Let's Encrypt
 **CI/CD**: GitHub Actions
@@ -69,8 +66,6 @@
 account:
   claude:
     api-key: ${ACCOUNT_CLAUDE_API_KEY}   # 환경변수 주입
-  jwt:
-    secret: ${ACCOUNT_JWT_SECRET}
 ```
 
 ## 개발 시작

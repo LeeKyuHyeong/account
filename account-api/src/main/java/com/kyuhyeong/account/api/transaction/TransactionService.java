@@ -3,7 +3,6 @@ package com.kyuhyeong.account.api.transaction;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
-import com.kyuhyeong.account.api.transaction.TransactionDtos.UpdateTransactionRequest;
 import com.kyuhyeong.account.core.entity.Category;
 import com.kyuhyeong.account.core.entity.Household;
 import com.kyuhyeong.account.core.entity.Transaction;
@@ -114,52 +113,6 @@ public class TransactionService {
         historyService.logCreate(tx, authorUserId);
         // 수동 입력은 즉시 CONFIRMED 이므로 가맹점 학습 대상.
         merchantHistoryService.upsert(tx.getMerchant(), tx.getCategory());
-        return TransactionResponse.from(tx);
-    }
-
-    /**
-     * 부분 수정 (PATCH). 현재는 categoryId / status 만 지원 — 영수증 컨펌 흐름에 한정.
-     *
-     * <p>status 는 DRAFT → CONFIRMED 일방향만 허용 (역방향은 데이터 무결성 위험).
-     * 카테고리 변경은 같은 가구의 카테고리여야 한다 (Hibernate filter 가 자동 강제).
-     * soft-delete 된 거래는 수정 불가.
-     */
-    @Transactional
-    public TransactionResponse update(Long id, UpdateTransactionRequest request, Long actorUserId) {
-        // findOwnedById = criteria 쿼리 (householdFilter 적용). findById 는 PK 직접 로드라
-        // 필터가 안 걸려 다른 가구 거래도 수정 가능해지는 격리 누수가 있었다.
-        Transaction tx = findOwnedById(id);
-        if (tx.getDeletedAt() != null) {
-            throw new IllegalArgumentException("Cannot update deleted transaction: " + id);
-        }
-
-        TransactionHistoryService.Snapshot before = TransactionHistoryService.Snapshot.from(tx);
-        boolean changed = false;
-        User actor = userRepository.getReferenceById(actorUserId);
-
-        if (request.categoryId() != null
-                && !request.categoryId().equals(tx.getCategory().getId())) {
-            Category newCategory = findOwnedCategory(request.categoryId());
-            tx.reassignCategory(newCategory, actor);
-            changed = true;
-        }
-        if (request.status() != null && request.status() != tx.getStatus()) {
-            if (request.status() != TransactionStatus.CONFIRMED) {
-                throw new IllegalArgumentException(
-                        "Only DRAFT → CONFIRMED transition is allowed via PATCH");
-            }
-            tx.confirm(actor);
-            changed = true;
-        }
-        if (changed) {
-            historyService.logUpdate(tx, before, actorUserId);
-            // PATCH 이후 상태가 CONFIRMED 면 학습 — 영수증 컨펌 흐름의 학습 진입점.
-            // (DRAFT 그대로면 학습 X. status 변경 없이 categoryId 만 바꾼 경우에도 학습 — 사용자가
-            // 명시적으로 카테고리를 수정한 것이므로.)
-            if (tx.getStatus() == TransactionStatus.CONFIRMED) {
-                merchantHistoryService.upsert(tx.getMerchant(), tx.getCategory());
-            }
-        }
         return TransactionResponse.from(tx);
     }
 

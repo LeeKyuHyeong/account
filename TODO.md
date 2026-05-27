@@ -23,9 +23,9 @@
 ```
 M0 기반:    ▓▓▓▓▓▓▓  레이아웃 + app.css + 에러페이지 완료
 M1 핵심:    ▓▓▓▓▓▓▓  홈 + 거래 목록/입력/수정 완료 (findById 격리 누수 수정 포함)
-M2 영수증:  ▓▓▓▓▓▓▓  업로드 → 실제 Claude 분석 → 컨펌까지 수동 검증 완료
-M3 대시보드:▓▓▓▓▓▓░  추이/예산/순자산 완료 (순자산 편집 유예) + 순자산 findById 격리 누수 수정
-M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신화 (전체 완료 후)
+M2 영수증:  ▓▓▓▓▓▓▓  업로드 → 실제 Claude 분석 → 컨펌 검증 완료 (직렬화 버그 수정 + 거래 전체필드 편집 추가)
+M3 대시보드:▓▓▓▓▓▓▓  추이/예산/순자산 완료 (자산/부채 편집만 유예) + 순자산 findById 격리 누수 수정
+M4 정리:    ▓▓▓▓▓▓▓  apiChain/JWT/REST/flutter_app 제거 완료 — 순수 SSR 단일화. 문서는 deployment.md/README 정리됨, account.md/CLAUDE.md 만 사용자 몫
 ```
 
 ---
@@ -52,8 +52,8 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 - [x] 공통 base 레이아웃 데코레이터 `fragments/layout.html` — `page(title, content)` (head + navbar + main + scripts 합성). Chart.js 는 차트 페이지(M3)에서 페이지별 include
 - [x] 정적 리소스 — `static/css/app.css` (모바일 우선, main max-width 640px). 앱 전용 JS 는 필요 시점에 추가 (현재 Bootstrap 번들로 충분)
 - [x] 에러 페이지 (`templates/error.html`, 독립형) + 로그아웃 동작 확인
-- [ ] `WebPingController`(PR1 검증 스텁) → M1 홈으로 교체 후 제거
-- 검증: ✅ owner1@example.com 로그인 → `/web/ping` 레이아웃 렌더 + principal 이메일 표시, `/css/app.css` 200, 404/500 → error.html, 로그아웃 302 (별도 8081 인스턴스로 curl 검증)
+- [x] `WebPingController`(PR1 검증 스텁) → M1 에서 `/web/home` 으로 교체 후 제거 완료
+- 검증: ✅ owner1@example.com 로그인 → 레이아웃 렌더 + principal 이메일 표시, `/css/app.css` 200, 404/500 → error.html, 로그아웃 302 (별도 8081 인스턴스로 curl 검증)
 
 ## P0 — M1. 홈 + 거래 (핵심 경로)
 
@@ -98,16 +98,17 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 
 **모든 화면 마이그레이션 완료 후 진행. 순서 중요 — 화면 다 옮긴 뒤에.**
 
-- [ ] `SecurityConfig` 에서 `apiChain` 제거 → `webChain` 단일 체인
-- [ ] JWT 인프라 제거 — `JwtAuthenticationFilter` / `JwtTokenProvider` / `JwtProperties` / `jwtFilterRegistration`
-- [ ] REST 컨트롤러 + 전용 서비스 제거 — `/api/**` (`AuthController` / `AuthService` / `TransactionController` / `ReceiptController` / `SummaryController` / `NetWorthController` / `AssetController` / `LiabilityController` / `CategoryController`). 로직은 Web 컨트롤러로 이전 완료 후 `@RestController` 버전 삭제
-- [ ] `AuthDtos` / REST 전용 DTO 정리 (Web 폼 DTO 와 중복 시)
-- [ ] `GlobalExceptionHandler`(@RestControllerAdvice) 를 `/api` 로 범위 제한 — 현재 웹 컨트롤러의 `IllegalArgumentException`(없는 거래 id 조회 등) 도 JSON 400 으로 처리됨. 웹은 error.html 로 가도록
-- [ ] `account.jwt.*` 설정 + `application-secret.yml` 의 jwt 블록 제거
-- [ ] **`flutter_app/` 디렉터리 삭제**
-- [ ] CI 에서 Flutter 잡 제거 (`.github/workflows/ci.yml`)
-- [ ] Android signing 자산 제거 (`key.properties` 패턴, `docs/deployment.md` §7)
-- [ ] **(사용자) CLAUDE.md + `docs/account.md` 최신화** — Flutter 기준 서술 → SSR 기준으로. *전체 완료 시점에 사용자가 직접 진행.*
+- [x] `SecurityConfig` 에서 `apiChain` 제거 → `webChain` 단일 체인 (CSRF 는 webChain 기본 활성 유지)
+- [x] JWT 인프라 제거 — `JwtAuthenticationFilter` / `JwtTokenProvider` / `JwtProperties` / `jwtFilterRegistration`
+- [x] REST 컨트롤러 + 전용 서비스 제거 — `/api/**` (`AuthController` / `AuthService` / `TransactionController` / `ReceiptController` / `SummaryController` / `NetWorthController` / `AssetController` / `LiabilityController` / `CategoryController`). 공유 서비스(`TransactionService` / `MonthlySummaryService` / `NetWorthService` / `ReceiptIngestionService`) + 공유 DTO 는 Web 컨트롤러가 재사용하므로 유지. 고아가 된 `TransactionService.update()` + `TransactionDtos.UpdateTransactionRequest` 함께 제거 (웹은 `edit()` 사용)
+- [x] `AuthDtos` 제거. `CategoryController` 는 전용이라 통째 삭제 (`CategoryControllerTest` 동반 삭제 — 예산 수정 로직은 `CategoryQueryService.updateBudget` 에 존재). `MonthlySummaryDtos` / `NetWorthDtos` / `TransactionDtos` 는 공유라 유지
+- [x] `GlobalExceptionHandler`(@RestControllerAdvice) **삭제** — REST 컨트롤러가 모두 사라져 더는 JSON 에러 advice 가 필요 없음. 웹 컨트롤러 예외는 이제 `error.html` 로 렌더 (status 500). 별도 4xx 매핑이 필요하면 후속
+- [x] `account.jwt.*` 설정 (`application.yml`) + `application-secret.yml` / `.example` 의 jwt 블록 제거
+- [x] **`flutter_app/` 디렉터리 삭제**
+- [x] CI 에서 Flutter 잡 제거 (`.github/workflows/ci.yml`) — backend 잡 단독
+- [x] Android signing 자산 제거 — `.gitignore` 의 `key.properties`/`*.jks`/`*.keystore` 패턴 + Flutter 블록 제거, `docs/deployment.md` §7 Flutter/서명 섹션 삭제
+- [x] (Claude) `docs/deployment.md` (§0 JWT / §6 /api curl / §7 Flutter) + `README.md` (JWT/REST/Flutter 서술) SSR 기준 정리
+- [ ] **(사용자) CLAUDE.md + `docs/account.md` 최신화** — Flutter 기준 서술 → SSR 기준으로. *사용자가 직접 진행.*
 
 ---
 
@@ -124,7 +125,7 @@ M4 정리:    ░░░░░░░  apiChain/flutter_app 제거 + 문서 최신
 - [ ] AssertJ
 
 ### 보류 (환경 이슈)
-- [ ] `HouseholdIsolationIntegrationTest` `@Disabled` — Windows + Docker Desktop + Testcontainers 비호환. Linux CI 시 재활성화
+- [x] `HouseholdIsolationIntegrationTest` 제거 (M4) — `/api`+JWT 경로 전용이라 그 경로와 함께 삭제. 세션 경로 격리 회귀 테스트는 미작성 (현재 수동 검증: owner1 → 22, owner2 → 5, 익명 → `/login`). 작성 시 Testcontainers Windows 비호환은 동일하므로 Linux CI 전제.
 
 ---
 

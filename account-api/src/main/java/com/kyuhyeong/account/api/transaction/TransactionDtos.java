@@ -68,18 +68,6 @@ public final class TransactionDtos {
     ) {
     }
 
-    /**
-     * 거래 부분 수정 (PATCH) 요청.
-     *
-     * <p>Week 4 영수증 컨펌 흐름에서 사용. 컨펌 / 카테고리 변경만 다룬다 — 금액 / 일시 등
-     * 본격적 편집은 별도 PR. null = 변경 없음.
-     */
-    public record UpdateTransactionRequest(
-            Long categoryId,
-            TransactionStatus status
-    ) {
-    }
-
     /** 페이지 응답 — Spring Data {@link Page} 를 클라이언트 친화 형식으로 노출. */
     public record PageResponse<T>(
             List<T> content,

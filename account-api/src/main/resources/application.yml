@@ -58,6 +58,9 @@ spring:
 
 server:
   port: 8080
+  # 리버스 프록시(nginx) 뒤에서 X-Forwarded-* 를 신뢰 — HTTPS 로 인식해 세션 쿠키 /
+  # formLogin 302 리다이렉트가 https 로 생성되도록 한다 (SSR + TLS 종단 nginx 필수).
+  forward-headers-strategy: framework
 
 # 영수증 이미지 저장 루트.
 #   개발: ./data/receipts (프로젝트 루트 기준, gitignored)
@@ -69,12 +72,6 @@ server:
 account:
   claude:
     api-key: ${ACCOUNT_CLAUDE_API_KEY:placeholder-set-via-application-secret-yml}
-  jwt:
-    # 빈 문자열을 기본값으로 둬서 application-secret.yml 또는 env 미설정 시
-    # JwtProperties @PostConstruct 단계에서 명확한 에러로 기동 실패하도록 한다.
-    secret: ${ACCOUNT_JWT_SECRET:}
-    access-ttl: ${ACCOUNT_JWT_ACCESS_TTL:PT15M}
-    refresh-ttl: ${ACCOUNT_JWT_REFRESH_TTL:P30D}
   receipts:
     storage-root: ${ACCOUNT_RECEIPTS_STORAGE_ROOT:./data/receipts}
 

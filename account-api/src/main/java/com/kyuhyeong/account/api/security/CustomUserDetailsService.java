@@ -19,9 +19,6 @@ import java.util.List;
  * <p>Spring Security 의 {@code DaoAuthenticationProvider} 가 본 Service 를 호출하여
  * 사용자를 로드하고 BCrypt 비밀번호 검증을 수행한다. 검증 성공 시 반환된
  * {@link CustomUserDetails} 가 principal 로 HttpSession 에 저장된다.
- *
- * <p>{@link com.kyuhyeong.account.api.auth.AuthService#login} (REST /api/auth/login) 과는 별도 경로다.
- * 양쪽 모두 동일한 BCrypt + UserRepository 를 사용하므로 검증 의미는 같다.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,7 +34,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid email or password"));
         List<HouseholdMember> memberships = memberRepository.findByUserId(user.getId());
         if (memberships.isEmpty()) {
-            // AuthService.login 과 동일한 정합성 가드.
+            // 가구 미가입은 데이터 정합성 오류 — 로그인 차단.
             throw new UsernameNotFoundException("User " + user.getId() + " has no household membership");
         }
         HouseholdMember active = memberships.get(0);

@@ -1,6 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- INTERNET 권한은 main 매니페스트에 정의됨 (release 빌드에도 필요).
-         디버그 전용으로 cleartext (HTTP) 트래픽 허용 — Android 에뮬레이터의
-         10.0.2.2:8080 백엔드 호출을 위함. 운영 빌드에는 적용되지 않는다. -->
-    <application android:usesCleartextTraffic="true"/>
-</manifest>

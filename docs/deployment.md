@@ -13,7 +13,6 @@
 |---|---|---|
 | DNS | `account.kyuhyeong.com` A 레코드 → VPS IP | Cafe24 DNS 콘솔 |
 | Claude 키 | https://console.anthropic.com → API Keys 발급 | Spend limits 월 $10 권장 |
-| JWT secret | `openssl rand -base64 48` 로 생성 | 로컬과 다른 강한 값 |
 | DB password | `pwgen -s 32 1` 로 생성 (root + app 각각) | 로컬 `accountlocal` 과 분리 |
 
 ## 1. VPS 준비
@@ -23,20 +22,18 @@
 docker --version
 docker compose version
 
-# 작업 디렉토리
-sudo mkdir -p /opt/account-app
-sudo chown $USER:$USER /opt/account-app
-cd /opt/account-app
+# 작업 디렉토리 (root 홈 아래 — 기존 /root/* 토이들과 동일)
+cd /root
 
 # 데이터 디렉토리 (compose volume 대상)
-sudo mkdir -p /var/lib/account-app/{mariadb,receipts}
-sudo chown -R $USER:$USER /var/lib/account-app
+mkdir -p /var/lib/account-app/{mariadb,receipts}
 ```
 
 ## 2. 코드 복사
 
 ```bash
-git clone https://github.com/LeeKyuHyeong/account-app.git .
+git clone https://github.com/LeeKyuHyeong/account-app.git
+cd account-app
 git checkout main
 ```
 
@@ -95,80 +92,26 @@ sudo systemctl list-timers | grep certbot
 
 ## 6. 동작 확인
 
-```bash
-# 로그인
-curl -X POST https://account.kyuhyeong.com/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"<운영-시드-사용자>", "password":"<password>"}'
-
-# 카테고리 조회 (Bearer 토큰 필요)
-curl https://account.kyuhyeong.com/api/categories \
-  -H "Authorization: Bearer $TOKEN"
-
-# 이번 달 합계
-curl https://account.kyuhyeong.com/api/summary/monthly \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## 7. Flutter 클라이언트 빌드 (Android)
-
-운영용 release APK 는 별도 업로드 키로 서명해야 한다. `flutter_app/android/key.properties`
-가 없으면 `app/build.gradle.kts` 가 debug 키로 자동 fallback 하므로 CI (`flutter build apk
---debug`) 와 로컬 dev 흐름은 키스토어 없이도 그대로 동작한다.
-
-### 7.1 Upload keystore 생성 (1회)
-
-`flutter_app/android/` 에서:
+브라우저로 `https://account.kyuhyeong.com` 접속 → 시드 사용자로 로그인(`/login`) →
+홈(`/web/home`) 의 이번 달 요약 + 거래 목록(`/web/transactions`) 이 렌더되면 정상.
 
 ```bash
-keytool -genkey -v -keystore upload-keystore.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias upload \
-  -dname "CN=Kyuhyeong Lee, OU=, O=, L=Seoul, ST=, C=KR"
+# 헬스 체크 — 인증 불필요한 로그인 페이지가 200 인지
+curl -I https://account.kyuhyeong.com/login
 ```
 
-keystore 비밀번호 + alias 비밀번호 2개를 입력한다. **둘 다 비밀번호 매니저에 즉시 저장**한다.
-분실 시 Play Store 에 같은 패키지명으로 업데이트 업로드가 영구 불가 → 앱 신규 등록 강제.
-키스토어 파일 자체도 (1Password attachment / 별도 USB / 암호화된 클라우드 백업 등) 다중
-백업 필수.
+## 7. CI
 
-### 7.2 `key.properties` 작성
-
-```bash
-cd flutter_app/android
-cp key.properties.example key.properties
-chmod 600 key.properties
-$EDITOR key.properties  # storePassword / keyPassword / storeFile 채우기
-```
-
-`storeFile` 은 `flutter_app/android/` 기준 상대경로. 위 §7.1 처럼 같은 디렉토리에 두면
-`upload-keystore.jks` 그대로. `key.properties` 와 `*.jks` 는 `.gitignore` 로 차단되어 있다.
-
-### 7.3 Release APK 빌드
-
-```bash
-cd flutter_app
-flutter build apk --release \
-  --dart-define=API_BASE_URL=https://account.kyuhyeong.com
-```
-
-산출물: `build/app/outputs/flutter-apk/app-release.apk`. 단말에 설치 후 로그인 → 거래 목록
-1회 동작 확인. Play Store Internal Track 업로드는 본 키로 서명된 APK 만 수용한다.
-
-## 8. CI
-
-`.github/workflows/ci.yml` 이 push / PR 시 자동:
-- Backend: Java 21 + Gradle 빌드 + 모든 테스트
-- Flutter: analyze + test + debug APK
+`.github/workflows/ci.yml` 이 push / PR 시 자동으로 Backend (Java 21 + Gradle 빌드 + 모든 테스트) 를 실행한다.
 
 CI 실패는 main branch protection 으로 머지 차단 (GitHub 설정에서 별도 활성화 필요).
 
-## 9. 운영 운영 (롤링 업데이트)
+## 8. 운영 (롤링 업데이트)
 
 코드 푸시 후 VPS 에서:
 
 ```bash
-cd /opt/account-app
+cd /root/account-app
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod build account-api
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d account-api
