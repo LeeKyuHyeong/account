@@ -73,4 +73,12 @@ public class Category {
     public void rename(String name) {
         this.name = name;
     }
+
+    /** 전체 편집 — 카테고리 관리 UI 진입점. type 변경 시 기존 거래는 새 type 을 자연 inherit. */
+    public void edit(String name, CategoryType type, BigDecimal budgetMonthly, int sortOrder) {
+        this.name = name;
+        this.type = type;
+        this.budgetMonthly = budgetMonthly;
+        this.sortOrder = sortOrder;
+    }
 }
