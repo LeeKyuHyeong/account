@@ -19,6 +19,14 @@
       } catch (e) { /* localStorage 차단 환경(시크릿 모드 등): 기본 light 유지 */ }
     })();
   </script>
+  <!--
+    Pretendard variable (한글 다이내믹 서브셋) — Toss 톤의 큰 숫자/제목이 살아남게 하기 위한 한글 폰트.
+    jsdelivr 단일 CDN, 외부 의존이지만 stylesheet 1개라 차단 시에도 system fallback(font-family 의
+    Apple SD Gothic Neo / Malgun Gothic) 으로 자연스럽게 떨어진다.
+  -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
   <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>

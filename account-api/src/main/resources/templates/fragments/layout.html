@@ -21,8 +21,8 @@
     공통 flash 영역. POST → redirect 핸들러가 RedirectAttributes.addFlashAttribute("message"|"error", ...)
     로 한 번 노출. 다음 요청 시 자연 소멸하므로 dismiss 버튼 없이 둔다.
   -->
-  <div th:if="${message}" class="alert alert-success py-2" role="alert" th:text="${message}">완료되었습니다.</div>
-  <div th:if="${error}" class="alert alert-danger py-2" role="alert" th:text="${error}">오류</div>
+  <div th:if="${message}" class="toss-alert toss-alert--success" role="alert" th:text="${message}">완료되었습니다.</div>
+  <div th:if="${error}" class="toss-alert toss-alert--danger" role="alert" th:text="${error}">오류</div>
   <th:block th:replace="${content}"></th:block>
 </main>
 <!--

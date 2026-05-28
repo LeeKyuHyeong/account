@@ -4,16 +4,17 @@
 <th:block th:replace="~{fragments/layout :: page('수입·지출 추이', ~{::content})}">
   <th:block th:fragment="content">
 
-    <h1 class="h5 mb-3">최근 6개월 추이</h1>
-
-    <div class="card">
-      <div class="card-body">
-        <canvas id="trendChart" height="220"></canvas>
-      </div>
+    <div class="mb-3">
+      <h1 class="toss-page-title">추이</h1>
+      <p class="toss-page-subtitle">최근 6개월 수입·지출·잉여</p>
     </div>
 
-    <div class="d-grid gap-2 mt-3">
-      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    <div class="toss-card mb-3">
+      <canvas id="trendChart" height="220"></canvas>
+    </div>
+
+    <div class="d-grid gap-2">
+      <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>

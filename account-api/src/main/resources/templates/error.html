@@ -2,20 +2,21 @@
 <!-- Spring Boot 기본 에러 뷰. chrome 없이 독립 렌더 (미인증 상태에서도 안전). -->
 <html xmlns:th="http://www.thymeleaf.org" lang="ko" data-bs-theme="light">
 <head th:replace="~{fragments/head :: head('오류')}"></head>
-<body class="bg-body-secondary">
+<body class="toss-page-bg">
 <main class="container" style="max-width: 480px; padding-top: 80px;">
-  <div class="card shadow-sm">
-    <div class="card-body p-4 text-center">
-      <h1 class="h4 mb-2">문제가 발생했습니다</h1>
-      <p class="text-muted mb-1">
-        <span th:text="${status} ?: ''">500</span>
-        <span th:text="${error} ?: ''">Error</span>
-      </p>
-      <p th:if="${message}" th:text="${message}" class="small text-muted mb-3"></p>
-      <div class="d-grid gap-2">
-        <a th:href="@{/web/home}" class="btn btn-primary">홈으로</a>
-        <a th:href="@{/login}" class="btn btn-outline-secondary">로그인 화면</a>
-      </div>
+
+  <h1 class="toss-page-title text-center mb-1" style="font-size: 26px;">문제가 발생했어요</h1>
+  <p class="toss-page-subtitle text-center mb-4">
+    <span th:text="${status} ?: ''">500</span>
+    <span th:text="${error} ?: ''">Error</span>
+  </p>
+
+  <div class="toss-card text-center" style="padding: 24px;">
+    <p th:if="${message}" th:text="${message}"
+       style="font-size: 13px; color: var(--toss-text-muted);" class="mb-4"></p>
+    <div class="d-grid gap-2">
+      <a th:href="@{/web/home}" class="btn toss-cta toss-cta-primary">홈으로</a>
+      <a th:href="@{/login}" class="btn toss-cta toss-cta-secondary">로그인 화면</a>
     </div>
   </div>
 </main>

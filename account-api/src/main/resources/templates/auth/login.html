@@ -1,35 +1,36 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko" data-bs-theme="light">
 <head th:replace="~{fragments/head :: head('로그인')}"></head>
-<body class="bg-body-secondary">
+<body class="toss-page-bg">
 <main class="container" style="max-width: 420px; padding-top: 80px;">
-  <div class="card shadow-sm">
-    <div class="card-body p-4">
-      <h1 class="h4 mb-4 text-center">가계부 로그인</h1>
 
-      <div th:if="${param.error}" class="alert alert-danger py-2 small">
-        이메일 또는 비밀번호가 올바르지 않습니다.
-      </div>
-      <div th:if="${param.logout}" class="alert alert-success py-2 small">
-        로그아웃되었습니다.
-      </div>
+  <h1 class="toss-page-title text-center mb-1" style="font-size: 28px;">가계부</h1>
+  <p class="toss-page-subtitle text-center mb-4">로그인하고 시작해요</p>
 
-      <form th:action="@{/login}" method="post">
-        <div class="mb-3">
-          <label for="email" class="form-label">이메일</label>
-          <input type="email" id="email" name="email" class="form-control"
-                 required autofocus autocomplete="username">
-        </div>
-        <div class="mb-3">
-          <label for="password" class="form-label">비밀번호</label>
-          <input type="password" id="password" name="password" class="form-control"
-                 required autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn btn-primary w-100">로그인</button>
-      </form>
+  <div class="toss-card" style="padding: 24px;">
+    <div th:if="${param.error}" class="toss-alert">
+      이메일 또는 비밀번호가 올바르지 않습니다.
     </div>
+    <div th:if="${param.logout}" class="toss-alert toss-alert--success">
+      로그아웃되었습니다.
+    </div>
+
+    <form th:action="@{/login}" method="post">
+      <div class="mb-3">
+        <label for="email" class="form-label fw-semibold small">이메일</label>
+        <input type="email" id="email" name="email" class="form-control form-control-lg"
+               required autofocus autocomplete="username">
+      </div>
+      <div class="mb-4">
+        <label for="password" class="form-label fw-semibold small">비밀번호</label>
+        <input type="password" id="password" name="password" class="form-control form-control-lg"
+               required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn toss-cta toss-cta-primary w-100">로그인</button>
+    </form>
   </div>
-  <p class="text-center text-muted small mt-3 mb-0">v1 MVP — 가구 초대 UI 미지원</p>
+
+  <p class="text-center toss-page-subtitle mt-3 mb-0">v1 MVP — 가구 초대 UI 미지원</p>
 </main>
 <div th:replace="~{fragments/scripts :: scripts}"></div>
 </body>

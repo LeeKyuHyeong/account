@@ -4,34 +4,40 @@
 <th:block th:replace="~{fragments/layout :: page('예산', ~{::content})}">
   <th:block th:fragment="content">
 
-    <h1 class="h5 mb-1">예산</h1>
-    <p class="text-muted small mb-3" th:text="${monthLabel} + ' 사용 현황'">2026년 5월 사용 현황</p>
+    <div class="mb-3">
+      <h1 class="toss-page-title">예산</h1>
+      <p class="toss-page-subtitle" th:text="${monthLabel} + ' 사용 현황'">2026년 5월 사용 현황</p>
+    </div>
 
-    <div th:each="row : ${rows}" class="mb-3" th:id="'category-' + ${row.categoryId}">
-      <div class="d-flex justify-content-between small">
-        <span th:text="${row.name}">식비</span>
-        <span th:classappend="${row.over} ? 'text-danger fw-semibold' : 'text-muted'">
+    <div th:each="row : ${rows}" class="toss-card mb-2" th:id="'category-' + ${row.categoryId}">
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span class="fw-semibold" style="color: var(--toss-text-strong); letter-spacing: -0.01em;"
+              th:text="${row.name}">식비</span>
+        <span style="font-variant-numeric: tabular-nums; font-size: 13px;"
+              th:classappend="${row.over} ? 'fw-semibold' : ''"
+              th:style="${row.over} ? 'color: var(--toss-expense);' : 'color: var(--toss-text-muted);'">
           <span th:text="${#numbers.formatInteger(row.total, 0, 'COMMA')}">0</span> /
           <span th:text="${row.budget.signum() > 0 ? #numbers.formatInteger(row.budget, 0, 'COMMA') : '미설정'}">0</span>원
           <span th:if="${row.over}" th:text="'(' + ${row.pct} + '%)'">(120%)</span>
         </span>
       </div>
-      <div class="progress mt-1" style="height: 6px;" th:if="${row.budget.signum() > 0}">
-        <div class="progress-bar" th:classappend="${row.over} ? 'bg-danger' : 'bg-success'"
+      <div class="toss-progress mb-2" th:if="${row.budget.signum() > 0}">
+        <div class="toss-progress__bar"
+             th:classappend="${row.over} ? 'toss-progress__bar--negative' : 'toss-progress__bar--positive'"
              th:style="|width: ${row.pct > 100 ? 100 : row.pct}%;|"></div>
       </div>
-      <form method="post" th:action="@{/web/budget}" class="input-group input-group-sm mt-1">
+      <form method="post" th:action="@{/web/budget}" class="input-group input-group-sm">
         <input type="hidden" name="categoryId" th:value="${row.categoryId}">
         <input type="number" inputmode="numeric" step="1" min="0" name="budgetMonthly" class="form-control"
                th:value="${row.budget.signum() > 0 ? row.budget : ''}" placeholder="예산 입력 (원)">
-        <button class="btn btn-outline-secondary" type="submit">저장</button>
+        <button class="btn toss-pill" type="submit">저장</button>
       </form>
     </div>
 
     <div class="d-grid gap-2 mt-3">
-      <a th:href="@{/web/categories}" class="btn btn-outline-secondary btn-sm">카테고리 관리</a>
-      <a th:href="@{/web/recurring}" class="btn btn-outline-secondary btn-sm">반복 거래</a>
-      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+      <a th:href="@{/web/categories}" class="btn toss-cta toss-cta-secondary">카테고리 관리</a>
+      <a th:href="@{/web/recurring}" class="btn toss-cta toss-cta-secondary">반복 거래</a>
+      <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
     </div>
 
   </th:block>
