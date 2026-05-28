@@ -4,48 +4,57 @@
 <th:block th:replace="~{fragments/layout :: page('거래 수정', ~{::content})}">
   <th:block th:fragment="content">
 
-    <h1 class="h5 mb-1">거래 수정</h1>
-    <p class="text-muted small mb-3">상태: <span th:text="${tx.status}">DRAFT</span></p>
+    <div class="mb-3">
+      <h1 class="toss-page-title">거래 수정</h1>
+      <p class="toss-page-subtitle">
+        상태:
+        <span class="toss-badge"
+              th:classappend="${tx.status.name() == 'DRAFT'} ? 'toss-badge--warning' : 'toss-badge--success'"
+              th:text="${tx.status}">DRAFT</span>
+      </p>
+    </div>
 
-    <form method="post" th:action="@{/web/transactions/{id}(id=${tx.id})}">
-      <div class="mb-3">
-        <label class="form-label">카테고리</label>
-        <select name="categoryId" class="form-select">
-          <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
-                  th:selected="${c.id == tx.categoryId}"></option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">금액 (원)</label>
-        <input type="number" inputmode="decimal" step="0.01" min="0" name="amount" class="form-control"
-               th:value="${tx.amount}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">일시</label>
-        <input type="datetime-local" name="occurredAt" class="form-control"
-               th:value="${#temporals.format(tx.occurredAt, 'yyyy-MM-dd''T''HH:mm')}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">상점 <span class="text-muted small">(선택)</span></label>
-        <input type="text" name="merchant" class="form-control" th:value="${tx.merchant}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">결제수단 <span class="text-muted small">(선택)</span></label>
-        <input type="text" name="paymentMethod" class="form-control" th:value="${tx.paymentMethod}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">메모 <span class="text-muted small">(선택)</span></label>
-        <textarea name="memo" class="form-control" rows="2" th:text="${tx.memo}"></textarea>
-      </div>
+    <form method="post" th:action="@{/web/transactions/{id}(id=${tx.id})}" class="toss-form">
+      <div class="toss-card mb-3">
+        <div class="mb-3">
+          <label class="form-label">카테고리</label>
+          <select name="categoryId" class="form-select">
+            <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
+                    th:selected="${c.id == tx.categoryId}"></option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">금액 (원)</label>
+          <input type="number" inputmode="decimal" step="0.01" min="0" name="amount" class="form-control"
+                 th:value="${tx.amount}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">일시</label>
+          <input type="datetime-local" name="occurredAt" class="form-control"
+                 th:value="${#temporals.format(tx.occurredAt, 'yyyy-MM-dd''T''HH:mm')}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">상점 <span style="color: var(--toss-text-muted); font-weight: 400;">(선택)</span></label>
+          <input type="text" name="merchant" class="form-control" th:value="${tx.merchant}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">결제수단 <span style="color: var(--toss-text-muted); font-weight: 400;">(선택)</span></label>
+          <input type="text" name="paymentMethod" class="form-control" th:value="${tx.paymentMethod}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">메모 <span style="color: var(--toss-text-muted); font-weight: 400;">(선택)</span></label>
+          <textarea name="memo" class="form-control" rows="2" th:text="${tx.memo}"></textarea>
+        </div>
 
-      <div class="form-check mb-3" th:if="${tx.status.name() == 'DRAFT'}">
-        <input class="form-check-input" type="checkbox" name="confirm" value="true" id="confirm">
-        <label class="form-check-label" for="confirm">이 거래를 확정 (CONFIRMED)</label>
+        <div class="form-check mb-0" th:if="${tx.status.name() == 'DRAFT'}">
+          <input class="form-check-input" type="checkbox" name="confirm" value="true" id="confirm">
+          <label class="form-check-label" for="confirm">이 거래를 확정 (CONFIRMED)</label>
+        </div>
       </div>
 
       <div class="d-grid gap-2">
-        <button type="submit" class="btn btn-primary">저장</button>
-        <a th:href="@{/web/transactions}" class="btn btn-outline-secondary">취소</a>
+        <button type="submit" class="btn toss-cta toss-cta-primary">저장</button>
+        <a th:href="@{/web/transactions}" class="btn toss-cta toss-cta-secondary">취소</a>
       </div>
     </form>
 
@@ -55,7 +64,7 @@
     -->
     <form method="post" th:action="@{/web/transactions/{id}/delete(id=${tx.id})}" class="mt-4 text-center"
           onsubmit="return confirm('이 거래를 삭제하시겠습니까?');">
-      <button type="submit" class="btn btn-link btn-sm text-danger">거래 삭제</button>
+      <button type="submit" class="toss-link-danger">거래 삭제</button>
     </form>
 
   </th:block>

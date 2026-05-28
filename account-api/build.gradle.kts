@@ -41,6 +41,11 @@ dependencies {
     // 향후 account-core 가 java-library plugin 으로 전환되면 api(...) 스코프로 정리 가능.
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
+    // ─── Dev 전용 ───
+    // 클래스패스 변경 감지 → 컨텍스트 자동 재기동 + spring.thymeleaf.cache=false 자동 적용.
+    // 운영 jar(bootJar) 에는 포함되지 않는다(developmentOnly 스코프).
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
     // ─── JWT (jjwt) ───
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")

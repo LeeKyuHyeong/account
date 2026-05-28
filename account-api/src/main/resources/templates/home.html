@@ -4,42 +4,43 @@
 <th:block th:replace="~{fragments/layout :: page('홈', ~{::content})}">
   <th:block th:fragment="content">
 
-    <div th:if="${!overBudget.isEmpty()}" class="alert alert-warning py-2">
-      <strong th:text="${overBudget.size()}">0</strong>개 카테고리가 예산을 초과했습니다 —
+    <div th:if="${!overBudget.isEmpty()}" class="toss-alert">
+      <strong th:text="${overBudget.size()}">0</strong>개 카테고리가 예산을 초과했어요 —
       <span th:text="${#strings.listJoin(overBudget.![name], ', ')}">식비</span>
     </div>
 
-    <h1 class="h5 mb-3" th:text="${monthLabel} + ' 요약'">2026년 5월 요약</h1>
+    <section class="mb-2">
+      <p class="toss-period" th:text="${monthLabel}">2026년 5월</p>
+      <p class="toss-amount"
+         th:classappend="${summary.surplus.signum() < 0} ? 'toss-amount--negative' : 'toss-amount--positive'"
+         th:text="${summary.surplus.signum() > 0 ? '+' : ''} + ${#numbers.formatInteger(summary.surplus, 0, 'COMMA')} + '원'">+0원</p>
+      <p class="toss-amount-label">이번달 잉여금</p>
+    </section>
 
-    <div class="card mb-3">
-      <div class="list-group list-group-flush">
-        <div class="list-group-item d-flex justify-content-between">
-          <span class="text-muted">수입</span>
-          <span th:text="${#numbers.formatInteger(summary.income, 0, 'COMMA')} + '원'">0원</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between">
-          <span class="text-muted">지출 (고정+변동)</span>
-          <span th:text="${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')} + '원'">0원</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between fw-semibold">
-          <span>잉여금</span>
-          <span th:classappend="${summary.surplus.signum() < 0} ? 'text-danger' : 'text-success'"
-                th:text="${#numbers.formatInteger(summary.surplus, 0, 'COMMA')} + '원'">0원</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between">
-          <span class="text-muted">투자/저축</span>
-          <span th:text="${#numbers.formatInteger(summary.invest, 0, 'COMMA')} + '원'">0원</span>
-        </div>
+    <div class="toss-stats">
+      <div class="toss-stat">
+        <span class="toss-stat-label">수입</span>
+        <span class="toss-stat-value toss-stat-value--income"
+              th:text="${#numbers.formatInteger(summary.income, 0, 'COMMA')} + '원'">0원</span>
+      </div>
+      <div class="toss-stat">
+        <span class="toss-stat-label">지출</span>
+        <span class="toss-stat-value toss-stat-value--expense"
+              th:text="${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')} + '원'">0원</span>
+      </div>
+      <div class="toss-stat">
+        <span class="toss-stat-label">투자·저축</span>
+        <span class="toss-stat-value toss-stat-value--invest"
+              th:text="${#numbers.formatInteger(summary.invest, 0, 'COMMA')} + '원'">0원</span>
       </div>
     </div>
 
     <div class="d-grid gap-2">
-      <a th:href="@{/web/receipts/new}" class="btn btn-primary">영수증 촬영</a>
-      <a th:href="@{/web/transactions/new}" class="btn btn-outline-primary">직접 입력</a>
-      <a th:href="@{/web/transactions}" class="btn btn-outline-secondary">거래 목록</a>
+      <a th:href="@{/web/receipts/new}" class="btn toss-cta toss-cta-primary">영수증 촬영</a>
+      <a th:href="@{/web/transactions/new}" class="btn toss-cta toss-cta-secondary">직접 입력</a>
+      <a th:href="@{/web/transactions}" class="btn toss-cta toss-cta-secondary">거래 목록</a>
     </div>
     <!-- 추이/예산/순자산 진입점은 navbar 햄버거 메뉴로 통합 -->
-
 
   </th:block>
 </th:block>

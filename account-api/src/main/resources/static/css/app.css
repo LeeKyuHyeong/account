@@ -2,6 +2,14 @@
    Bootstrap 5 를 베이스로, 앱 고유 최소 보정만 둔다.
    페이지별 스타일이 늘어나면 그때 분리 검토. */
 
+/* Pretendard 우선 폰트 스택. head.html 이 CDN 로딩 실패해도 OS 한글 폰트로 자연 fallback. */
+body {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+               'Apple SD Gothic Neo', 'Malgun Gothic', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* 차트 색상 CSS variables — light 기본값 + dark override.
    Chart.js inline 스크립트가 getComputedStyle 로 읽어 borderColor 에 적용한다.
    라이트 값은 마이그레이션 전 hex 그대로 유지 (라이트 회귀 0). */
@@ -63,4 +71,510 @@ main.container {
   align-items: center;
   justify-content: center;
   z-index: 1030; /* Bootstrap fixed-bottom(1030) 동급, modal(1055) 아래 */
+  /* Toss 톤 — Bootstrap btn-primary 의 #0d6efd 대신 토스 블루 사용 + 강한 그림자로 floating 강조. */
+  background: var(--toss-primary);
+  border-color: var(--toss-primary);
+  box-shadow: 0 6px 16px rgba(49, 130, 246, 0.35);
+}
+.fab-camera:hover,
+.fab-camera:focus {
+  background: var(--toss-primary-strong);
+  border-color: var(--toss-primary-strong);
+  box-shadow: 0 8px 20px rgba(49, 130, 246, 0.45);
+}
+
+/* =========================================================================
+   Toss 톤 디자인 토큰 + 컴포넌트 (PoC: 홈 화면).
+   기존 Bootstrap/페이지 회귀를 피하기 위해 새 클래스(.toss-*)로만 노출한다.
+   다른 화면에는 영향 없음 — 폰트만 Pretendard 로 전역 자연 적용된다.
+   ========================================================================= */
+
+:root {
+  /* 표면/텍스트 — 라이트 */
+  --toss-bg: #FAFBFC;
+  --toss-surface: #FFFFFF;
+  --toss-surface-muted: #F4F6F8;
+  --toss-border: #EEF0F4;
+  --toss-text-strong: #191F28;
+  --toss-text: #333D4B;
+  --toss-text-muted: #6B7684;
+  /* 시맨틱 — 라이트 */
+  --toss-primary: #3182F6;
+  --toss-primary-strong: #1B64DA;
+  --toss-income: #00C853;
+  --toss-expense: #FF5A5F;
+  --toss-invest: #6F47FF;
+}
+[data-bs-theme="dark"] {
+  --toss-bg: #0B0E14;
+  --toss-surface: #161B22;
+  --toss-surface-muted: #1F252D;
+  --toss-border: #262C36;
+  --toss-text-strong: #ECEDEE;
+  --toss-text: #C9CED6;
+  --toss-text-muted: #8B95A1;
+  --toss-primary: #4592F9;
+  --toss-primary-strong: #6FA9FB;
+  --toss-income: #20E07E;
+  --toss-expense: #FF7F84;
+  --toss-invest: #9F84FF;
+}
+
+/* 기간 라벨 — Hero 위 작은 텍스트 ("2026년 5월"). */
+.toss-period {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--toss-text-muted);
+  margin: 0 0 6px;
+}
+
+/* Hero 큰 숫자. tabular-nums 로 숫자 폭 흔들림 제거. */
+.toss-amount {
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 800;       /* Pretendard ExtraBold */
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--toss-text-strong);
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 4px;
+}
+.toss-amount--positive { color: var(--toss-primary); }
+.toss-amount--negative { color: var(--toss-expense); }
+
+.toss-amount-label {
+  font-size: 14px;
+  color: var(--toss-text-muted);
+  margin: 0;
+}
+
+/* Stat 카드 3분할 그리드. 모바일 가독성 우선 — 세 칸 동일 폭. */
+.toss-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+.toss-stat {
+  background: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 16px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Toss 특유의 거의-없는 그림자 — 깊이는 보더로 표현 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.toss-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--toss-text-muted);
+}
+.toss-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--toss-text-strong);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.toss-stat-value--income { color: var(--toss-income); }
+.toss-stat-value--expense { color: var(--toss-expense); }
+.toss-stat-value--invest { color: var(--toss-invest); }
+
+/* CTA — 라운드 큼지막한 액션 버튼. Bootstrap btn 위에 덧입혀 톤만 보정. */
+.btn.toss-cta {
+  border-radius: 14px;
+  padding: 16px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+}
+.btn.toss-cta-primary {
+  background: var(--toss-primary);
+  color: #FFFFFF;
+}
+.btn.toss-cta-primary:hover,
+.btn.toss-cta-primary:focus {
+  background: var(--toss-primary-strong);
+  color: #FFFFFF;
+}
+.btn.toss-cta-secondary {
+  background: var(--toss-surface-muted);
+  color: var(--toss-text-strong);
+  border-color: var(--toss-border);
+}
+.btn.toss-cta-secondary:hover,
+.btn.toss-cta-secondary:focus {
+  background: var(--toss-surface);
+  color: var(--toss-text-strong);
+}
+
+/* 예산 초과 알림 — 톤 부드럽게. */
+.toss-alert {
+  background: rgba(255, 90, 95, 0.08);
+  border: 1px solid rgba(255, 90, 95, 0.18);
+  color: var(--toss-expense);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+[data-bs-theme="dark"] .toss-alert {
+  background: rgba(255, 127, 132, 0.10);
+  border-color: rgba(255, 127, 132, 0.25);
+}
+
+/* ---------- 공용 컴포넌트 (4화면 확장 PoC) ---------- */
+
+/* 페이지 제목 + 보조 라벨 — 홈의 toss-period/toss-amount 보다 작은 일반 헤더용. */
+.toss-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--toss-text-strong);
+  margin: 0;
+}
+.toss-page-subtitle {
+  font-size: 13px;
+  color: var(--toss-text-muted);
+  margin: 4px 0 0;
+}
+
+/* 범용 카드. 카드 안에 list-row 가 들어가면 카드 padding 은 0 이 되도록 .toss-card--flush. */
+.toss-card {
+  background: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.toss-card + .toss-card { margin-top: 12px; }
+.toss-card--flush { padding: 0; overflow: hidden; }
+
+/* 카드 내부 row 분할자. 마지막 row 는 보더 없음. */
+.toss-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--toss-border);
+  color: var(--toss-text);
+  text-decoration: none;
+  background: transparent;
+  transition: background-color .12s ease;
+}
+.toss-list-row:last-child { border-bottom: none; }
+a.toss-list-row:hover,
+a.toss-list-row:focus {
+  background: var(--toss-surface-muted);
+  color: var(--toss-text);
+}
+.toss-list-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toss-list-row__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--toss-text-strong);
+  letter-spacing: -0.01em;
+}
+.toss-list-row__sub {
+  font-size: 12px;
+  color: var(--toss-text-muted);
+}
+.toss-list-row__amount {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--toss-text-strong);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.toss-list-row__amount--income { color: var(--toss-income); }
+.toss-list-row__amount--expense { color: var(--toss-expense); }
+
+/* 날짜/섹션 그룹 헤더 — 거래 목록의 "2026-05-26" 같은 작은 헤더. */
+.toss-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--toss-text-muted);
+  margin: 18px 4px 8px;
+  letter-spacing: 0;
+}
+.toss-group-label:first-child { margin-top: 4px; }
+
+/* 빈 상태. */
+.toss-empty {
+  text-align: center;
+  padding: 56px 16px;
+  color: var(--toss-text-muted);
+  font-size: 14px;
+}
+
+/* Pill 작은 버튼 (필터/+입력 같은 보조 액션). Bootstrap .btn 위에 덧입혀 톤 보정. */
+.btn.toss-pill {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--toss-border);
+  background: var(--toss-surface);
+  color: var(--toss-text-strong);
+}
+.btn.toss-pill:hover,
+.btn.toss-pill:focus {
+  background: var(--toss-surface-muted);
+  color: var(--toss-text-strong);
+  border-color: var(--toss-border);
+}
+.btn.toss-pill--primary {
+  background: var(--toss-primary);
+  color: #FFFFFF;
+  border-color: var(--toss-primary);
+}
+.btn.toss-pill--primary:hover,
+.btn.toss-pill--primary:focus {
+  background: var(--toss-primary-strong);
+  color: #FFFFFF;
+  border-color: var(--toss-primary-strong);
+}
+
+/* 작은 뱃지 (DRAFT 초안 등). */
+.toss-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0;
+  vertical-align: 1px;
+}
+.toss-badge--warning {
+  background: rgba(255, 176, 32, 0.14);
+  color: #B26B00;
+}
+[data-bs-theme="dark"] .toss-badge--warning {
+  background: rgba(255, 196, 80, 0.18);
+  color: #FFC44C;
+}
+
+/* 진행률 바 — Bootstrap progress 대체. 둥근 끝 + 굵기. */
+.toss-progress {
+  height: 8px;
+  background: var(--toss-surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.toss-progress__bar {
+  height: 100%;
+  background: var(--toss-primary);
+  border-radius: 999px;
+  transition: width .25s ease;
+}
+.toss-progress__bar--positive { background: var(--toss-income); }
+.toss-progress__bar--negative { background: var(--toss-expense); }
+
+/* 로그인 페이지 전용 배경 (layout 미사용 독립 페이지). */
+.toss-page-bg {
+  background: var(--toss-bg);
+  min-height: 100vh;
+}
+
+/* 페이지네이션 좌/우 버튼 영역. */
+.toss-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 8px;
+}
+.toss-pager .btn.toss-cta { padding: 12px 18px; font-size: 14px; }
+
+/* ---------- 폼 입력 (opt-in: form 또는 카드에 .toss-form 추가) ---------- */
+/* Bootstrap form-control / form-select / textarea 를 toss 톤으로 살짝 올려준다.
+   다른 화면(.toss-form 미사용)은 Bootstrap 기본 그대로 — 회귀 0. */
+.toss-form .form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--toss-text-strong);
+  margin-bottom: 6px;
+}
+.toss-form .form-control,
+.toss-form .form-select,
+.toss-form textarea.form-control {
+  border-radius: 12px;
+  border: 1px solid var(--toss-border);
+  background: var(--toss-surface);
+  color: var(--toss-text-strong);
+  padding: 12px 14px;
+  font-size: 15px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.toss-form .form-control-lg {
+  padding: 14px 16px;
+  font-size: 16px;
+}
+.toss-form .form-control-sm,
+.toss-form .form-select-sm {
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.toss-form .form-control:focus,
+.toss-form .form-select:focus,
+.toss-form textarea.form-control:focus {
+  border-color: var(--toss-primary);
+  box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.18);
+  outline: none;
+}
+[data-bs-theme="dark"] .toss-form .form-control:focus,
+[data-bs-theme="dark"] .toss-form .form-select:focus,
+[data-bs-theme="dark"] .toss-form textarea.form-control:focus {
+  box-shadow: 0 0 0 3px rgba(69, 146, 249, 0.28);
+}
+.toss-form .form-control.is-invalid,
+.toss-form .form-select.is-invalid {
+  border-color: var(--toss-expense);
+}
+.toss-form .form-text {
+  color: var(--toss-text-muted);
+  font-size: 12px;
+}
+/* input-group 의 input + 버튼 조합: 보더 일관성 */
+.toss-form .input-group .form-control { border-right: none; }
+.toss-form .input-group .btn { border-radius: 0 12px 12px 0; }
+.toss-form .input-group .form-control:first-child { border-radius: 12px 0 0 12px; }
+
+/* ---------- Alert 변형 (success / warning) ---------- */
+/* 기본 .toss-alert 는 danger 톤 (이미 정의됨). 명시적 동일 클래스로도 호출 가능. */
+.toss-alert.toss-alert--danger {
+  background: rgba(255, 90, 95, 0.08);
+  border-color: rgba(255, 90, 95, 0.18);
+  color: var(--toss-expense);
+}
+[data-bs-theme="dark"] .toss-alert.toss-alert--danger {
+  background: rgba(255, 127, 132, 0.10);
+  border-color: rgba(255, 127, 132, 0.25);
+}
+.toss-alert.toss-alert--success {
+  background: rgba(0, 200, 83, 0.08);
+  border: 1px solid rgba(0, 200, 83, 0.20);
+  color: #00833A;
+}
+[data-bs-theme="dark"] .toss-alert.toss-alert--success {
+  background: rgba(32, 224, 126, 0.10);
+  border-color: rgba(32, 224, 126, 0.25);
+  color: var(--toss-income);
+}
+.toss-alert.toss-alert--warning {
+  background: rgba(255, 176, 32, 0.10);
+  border: 1px solid rgba(255, 176, 32, 0.22);
+  color: #A36500;
+}
+[data-bs-theme="dark"] .toss-alert.toss-alert--warning {
+  background: rgba(255, 196, 80, 0.12);
+  border-color: rgba(255, 196, 80, 0.28);
+  color: #FFC44C;
+}
+
+/* ---------- 섹션 제목 (h2 용) ---------- */
+.toss-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--toss-text-strong);
+  margin: 20px 0 10px;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- + 추가 폼 카드 (점선 보더로 "여기 더 추가" 시각화) ---------- */
+.toss-card--add {
+  border-style: dashed;
+  background: transparent;
+}
+[data-bs-theme="dark"] .toss-card--add {
+  background: transparent;
+}
+
+/* ---------- 텍스트 링크 (삭제 등 destructive 액션) ---------- */
+.toss-link-danger {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--toss-expense);
+  text-decoration: none;
+}
+.toss-link-danger:hover { text-decoration: underline; }
+
+/* ---------- navbar 톤 (Bootstrap navbar 위에 덧입힘) ---------- */
+.navbar.navbar-toss {
+  background: var(--toss-surface);
+  border-bottom: 1px solid var(--toss-border);
+  box-shadow: none;
+}
+.navbar.navbar-toss .navbar-brand {
+  font-weight: 800;
+  color: var(--toss-text-strong);
+  letter-spacing: -0.02em;
+  font-size: 17px;
+}
+.navbar.navbar-toss .nav-link {
+  color: var(--toss-text-muted);
+  font-weight: 600;
+  font-size: 14px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 8px;
+}
+.navbar.navbar-toss .nav-link:hover,
+.navbar.navbar-toss .nav-link:focus {
+  color: var(--toss-text-strong);
+  background: var(--toss-surface-muted);
+}
+.navbar.navbar-toss .nav-link.active {
+  color: var(--toss-primary);
+  background: rgba(49, 130, 246, 0.08);
+}
+[data-bs-theme="dark"] .navbar.navbar-toss .nav-link.active {
+  background: rgba(69, 146, 249, 0.15);
+}
+.navbar.navbar-toss .btn-outline-secondary {
+  border-color: var(--toss-border);
+  color: var(--toss-text-muted);
+  border-radius: 8px;
+}
+.navbar.navbar-toss .btn-outline-secondary:hover,
+.navbar.navbar-toss .btn-outline-secondary:focus {
+  background: var(--toss-surface-muted);
+  color: var(--toss-text-strong);
+  border-color: var(--toss-border);
+}
+
+/* ---------- 작은 상태 뱃지 추가 변형 ---------- */
+.toss-badge--neutral {
+  background: var(--toss-surface-muted);
+  color: var(--toss-text-muted);
+}
+.toss-badge--success {
+  background: rgba(0, 200, 83, 0.12);
+  color: #007A36;
+}
+[data-bs-theme="dark"] .toss-badge--success {
+  background: rgba(32, 224, 126, 0.16);
+  color: var(--toss-income);
+}
+.toss-badge--primary {
+  background: rgba(49, 130, 246, 0.12);
+  color: var(--toss-primary-strong);
+}
+[data-bs-theme="dark"] .toss-badge--primary {
+  background: rgba(69, 146, 249, 0.16);
+  color: var(--toss-primary);
 }

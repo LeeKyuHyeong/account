@@ -11,7 +11,7 @@
   active 표시: currentUri (ViewContextAdvice 가 모델 주입) 가 해당 섹션 prefix 로 시작하면
   nav-link 에 'active' + aria-current='page'. 브랜드 "가계부" 는 active 처리 안 함.
 -->
-<nav th:fragment="navbar" class="navbar navbar-expand-md bg-body-tertiary border-bottom"
+<nav th:fragment="navbar" class="navbar navbar-toss navbar-expand-md"
      th:with="uri=${currentUri}">
   <div class="container">
     <a class="navbar-brand" th:href="@{/web/home}">가계부</a>
