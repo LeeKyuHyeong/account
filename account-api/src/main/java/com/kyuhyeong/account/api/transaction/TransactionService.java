@@ -149,6 +149,23 @@ public class TransactionService {
     }
 
     /**
+     * 거래 soft-delete — {@code deletedAt} 세팅. 가구 격리는 {@link #findOwnedById} 가 보장.
+     * 이미 삭제된 거래에 대한 재요청은 거부(멱등 처리 X) — UI 에서 그런 흐름이 발생하지 않게
+     * {@link #get} 이 deleted 거래를 차단하므로 정상 흐름에선 도달 불가.
+     */
+    @Transactional
+    public void softDelete(Long id, Long actorUserId) {
+        Transaction tx = findOwnedById(id);
+        if (tx.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Transaction already deleted: " + id);
+        }
+        TransactionHistoryService.Snapshot before = TransactionHistoryService.Snapshot.from(tx);
+        User actor = userRepository.getReferenceById(actorUserId);
+        tx.softDelete(actor);
+        historyService.logDelete(tx, before, actorUserId);
+    }
+
+    /**
      * 카테고리 단건 해석 — {@code findAll()}(householdFilter 적용)에서 id 매칭. {@code findById}
      * (PK 직접 로드)는 필터가 안 걸려 다른 가구 카테고리도 할당 가능한 누수가 있으므로 쓰지 않는다.
      */
