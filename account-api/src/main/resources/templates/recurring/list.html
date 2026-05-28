@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('반복 거래', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <h1 class="h5 mb-0">반복 거래</h1>
+      <form method="post" th:action="@{/web/recurring/run-now}" class="d-inline">
+        <button class="btn btn-outline-primary btn-sm" type="submit" title="이번 달 due 룰 즉시 발화">지금 실행</button>
+      </form>
+    </div>
+    <p class="text-muted small mb-3">매월 정해진 일자에 자동으로 거래가 적재됩니다. 새벽 5시(KST) 스케줄러가 발화하며 같은 달 재실행은 멱등합니다.</p>
+
+    <ul class="list-group mb-3">
+      <li th:each="rule : ${rules}" class="list-group-item" th:id="'rule-' + ${rule.id}">
+        <form method="post" th:action="@{/web/recurring/{id}(id=${rule.id})}" class="row g-1">
+          <div class="col-12 mb-1 d-flex align-items-center gap-2">
+            <span class="badge text-bg-secondary"
+                  th:text="'매월 ' + ${rule.dayOfMonth} + '일'">매월 25일</span>
+            <span class="text-muted small"
+                  th:text="${rule.lastRunYearMonth != null
+                    ? '마지막 발화: ' + rule.lastRunYearMonth
+                    : '아직 발화 전'}">마지막 발화: 2026-05</span>
+            <span class="ms-auto">
+              <span class="badge text-bg-success" th:if="${rule.active}">활성</span>
+              <span class="badge text-bg-secondary" th:unless="${rule.active}">비활성</span>
+            </span>
+          </div>
+          <div class="col-6">
+            <select name="categoryId" class="form-select form-select-sm" required>
+              <option th:each="c : ${categories}" th:value="${c.id}"
+                      th:text="${c.name}"
+                      th:selected="${c.id == rule.category.id}"></option>
+            </select>
+          </div>
+          <div class="col-6">
+            <input type="number" inputmode="numeric" name="amount" th:value="${rule.amount}"
+                   min="1" step="1" class="form-control form-control-sm" placeholder="금액" required>
+          </div>
+          <div class="col-7">
+            <input name="merchant" th:value="${rule.merchant}"
+                   class="form-control form-control-sm" placeholder="상점 (선택)" maxlength="200">
+          </div>
+          <div class="col-5">
+            <input name="paymentMethod" th:value="${rule.paymentMethod}"
+                   class="form-control form-control-sm" placeholder="결제수단 (선택)" maxlength="50">
+          </div>
+          <div class="col-12">
+            <input name="memo" th:value="${rule.memo}"
+                   class="form-control form-control-sm" placeholder="메모 (선택)" maxlength="500">
+          </div>
+          <div class="col-5">
+            <input type="number" inputmode="numeric" name="dayOfMonth" th:value="${rule.dayOfMonth}"
+                   min="1" max="31" step="1" class="form-control form-control-sm" placeholder="발화 일자" required>
+          </div>
+          <div class="col-4 form-check ms-2 mt-1">
+            <input class="form-check-input" type="checkbox" name="active" value="true"
+                   th:id="'active-' + ${rule.id}" th:checked="${rule.active}">
+            <label class="form-check-label small" th:for="'active-' + ${rule.id}">활성</label>
+          </div>
+          <div class="col-3 d-grid">
+            <button class="btn btn-outline-primary btn-sm" type="submit">저장</button>
+          </div>
+        </form>
+        <form method="post" th:action="@{/web/recurring/{id}/delete(id=${rule.id})}" class="mt-1 text-end"
+              onsubmit="return confirm('이 반복 거래를 삭제하시겠습니까? 이미 발화된 과거 거래는 그대로 유지됩니다.');">
+          <button class="btn btn-link btn-sm text-danger p-0" type="submit">삭제</button>
+        </form>
+      </li>
+      <li th:if="${rules.isEmpty()}" class="list-group-item text-muted small">등록된 반복 거래가 없습니다.</li>
+    </ul>
+
+    <h2 class="h6 mt-4">반복 거래 추가</h2>
+    <form method="post" th:action="@{/web/recurring}" class="row g-1 mb-3">
+      <div class="col-6">
+        <select name="categoryId" class="form-select form-select-sm" required>
+          <option value="" disabled selected>카테고리 선택</option>
+          <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+        </select>
+      </div>
+      <div class="col-6">
+        <input type="number" inputmode="numeric" name="amount"
+               min="1" step="1" class="form-control form-control-sm" placeholder="금액" required>
+      </div>
+      <div class="col-7">
+        <input name="merchant" class="form-control form-control-sm" placeholder="상점 (선택)" maxlength="200">
+      </div>
+      <div class="col-5">
+        <input name="paymentMethod" class="form-control form-control-sm" placeholder="결제수단 (선택)" maxlength="50">
+      </div>
+      <div class="col-12">
+        <input name="memo" class="form-control form-control-sm" placeholder="메모 (선택)" maxlength="500">
+      </div>
+      <div class="col-5">
+        <input type="number" inputmode="numeric" name="dayOfMonth"
+               min="1" max="31" step="1" class="form-control form-control-sm" placeholder="발화 일자 (1~31)" required>
+      </div>
+      <div class="col-4 form-check ms-2 mt-1">
+        <input class="form-check-input" type="checkbox" name="active" value="true" id="new-active" checked>
+        <label class="form-check-label small" for="new-active">활성</label>
+      </div>
+      <div class="col-3 d-grid">
+        <button class="btn btn-outline-primary btn-sm" type="submit">+ 추가</button>
+      </div>
+    </form>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/categories}" class="btn btn-outline-secondary btn-sm">카테고리 관리</a>
+      <a th:href="@{/web/budget}" class="btn btn-outline-secondary btn-sm">예산</a>
+      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>

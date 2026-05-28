@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('카테고리 관리', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <h1 class="h5 mb-1">카테고리 관리</h1>
+    <p class="text-muted small mb-3">이름·타입·월 예산·정렬순서를 수정하거나 새 카테고리를 추가할 수 있습니다.</p>
+
+    <ul class="list-group mb-3">
+      <li th:each="category : ${categories}" class="list-group-item" th:id="'category-master-' + ${category.id}">
+        <form method="post" th:action="@{/web/categories/{id}(id=${category.id})}" class="row g-1">
+          <div class="col-7">
+            <input name="name" th:value="${category.name}" class="form-control form-control-sm"
+                   placeholder="이름" maxlength="100" required>
+          </div>
+          <div class="col-5">
+            <select name="type" class="form-select form-select-sm" required>
+              <option value="INCOME" th:selected="${category.type.name() == 'INCOME'}">수입</option>
+              <option value="FIXED" th:selected="${category.type.name() == 'FIXED'}">고정지출</option>
+              <option value="VARIABLE" th:selected="${category.type.name() == 'VARIABLE'}">변동지출</option>
+              <option value="INVEST" th:selected="${category.type.name() == 'INVEST'}">투자</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <input type="number" inputmode="numeric" name="budgetMonthly"
+                   th:value="${category.budgetMonthly}" min="0" step="1"
+                   class="form-control form-control-sm" placeholder="월 예산" required>
+          </div>
+          <div class="col-3">
+            <input type="number" inputmode="numeric" name="sortOrder"
+                   th:value="${category.sortOrder}" min="0" step="1"
+                   class="form-control form-control-sm" placeholder="순서" required>
+          </div>
+          <div class="col-3 d-grid">
+            <button class="btn btn-outline-primary btn-sm" type="submit">저장</button>
+          </div>
+        </form>
+        <!-- 삭제: 사용 중 카테고리는 서비스 가드에 의해 거부 + flash error 로 노출. -->
+        <form method="post" th:action="@{/web/categories/{id}/delete(id=${category.id})}" class="mt-1 text-end"
+              onsubmit="return confirm('이 카테고리를 삭제하시겠습니까?');">
+          <button class="btn btn-link btn-sm text-danger p-0" type="submit">삭제</button>
+        </form>
+      </li>
+      <li th:if="${categories.isEmpty()}" class="list-group-item text-muted small">카테고리가 없습니다.</li>
+    </ul>
+
+    <h2 class="h6 mt-4">카테고리 추가</h2>
+    <form method="post" th:action="@{/web/categories}" class="row g-1 mb-3">
+      <div class="col-7">
+        <input name="name" class="form-control form-control-sm" placeholder="이름" maxlength="100" required>
+      </div>
+      <div class="col-5">
+        <select name="type" class="form-select form-select-sm" required>
+          <option value="" disabled selected>타입 선택</option>
+          <option value="INCOME">수입</option>
+          <option value="FIXED">고정지출</option>
+          <option value="VARIABLE">변동지출</option>
+          <option value="INVEST">투자</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <input type="number" inputmode="numeric" name="budgetMonthly" min="0" step="1" value="0"
+               class="form-control form-control-sm" placeholder="월 예산 (선택, 기본 0)" required>
+      </div>
+      <div class="col-3">
+        <input type="number" inputmode="numeric" name="sortOrder" min="0" step="1" value="99"
+               class="form-control form-control-sm" placeholder="순서" required>
+      </div>
+      <div class="col-3 d-grid">
+        <button class="btn btn-outline-primary btn-sm" type="submit">+ 추가</button>
+      </div>
+    </form>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/budget}" class="btn btn-outline-secondary btn-sm">예산으로</a>
+      <a th:href="@{/web/home}" class="btn btn-outline-secondary btn-sm">홈으로</a>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>

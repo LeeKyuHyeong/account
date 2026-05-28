@@ -13,4 +13,11 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
  */
 public interface TransactionRepository
         extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
+
+    /**
+     * 특정 카테고리를 참조하는 거래 수 — 카테고리 삭제 안전 가드용. soft-delete 된 거래도 포함
+     * (DB FK 가 RESTRICT 라 soft-delete 여부와 무관하게 어차피 막힘 → 사용자에게 동일 결과 보고).
+     * 가구 격리는 Hibernate {@code householdFilter} 가 자동 적용.
+     */
+    long countByCategoryId(Long categoryId);
 }
