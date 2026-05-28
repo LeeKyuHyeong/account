@@ -3,8 +3,10 @@
 > 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
 **Repo**: <https://github.com/LeeKyuHyeong/account-app>
-**현재 페이즈**: `Week 1 — 기반 + Multi-tenant 셋업` (☞ §8 참조)
-**Last updated**: 2026-05-19
+**현재 페이즈**: `운영 — account.kyuhyeong.com 배포 완료 + 폰 UX 개선 진행 중` (☞ [TODO.md](../TODO.md))
+**Last updated**: 2026-05-28
+
+> **이력 메모**: 초안은 Flutter + JWT REST 기준이었으나 2026-05-26 부터 Thymeleaf SSR 로 마이그레이션, 2026-05-27 운영 배포 완료, JWT/REST/`flutter_app/` 는 모두 제거됐다. 본 문서는 **현재 상태** 만 담는다 — 작업 단위 / 의사결정 이력은 git log + [`TODO.md`](../TODO.md) 참조.
 
 ---
 
@@ -18,13 +20,12 @@
 5. [기술 스택](#5-기술-스택)
 6. [데이터 모델 (Multi-tenant ER)](#6-데이터-모델-multi-tenant-er)
 7. [API 설계 / 인증 / 보안](#7-api-설계--인증--보안)
-8. [✅ 다음 작업: Week 1](#8--다음-작업-week-1) ★ 에이전트가 그대로 진행할 영역
-9. [개발 로드맵 (Week 2-6 + 이후)](#9-개발-로드맵-week-2-6--이후)
-10. [작업 규칙](#10-작업-규칙)
-11. [확정된 결정 사항 (7개)](#11-확정된-결정-사항-7개)
-12. [비용 추정](#12-비용-추정)
-13. [확장성 / 사업화 가능성](#13-확장성--사업화-가능성)
-14. [부록: 재활용 자산 / 환경 정보](#14-부록-재활용-자산--환경-정보)
+8. [후속 버전 백로그](#8-후속-버전-백로그)
+9. [작업 규칙](#9-작업-규칙)
+10. [확정된 결정 사항](#10-확정된-결정-사항)
+11. [비용 추정](#11-비용-추정)
+12. [확장성 / 사업화 가능성](#12-확장성--사업화-가능성)
+13. [부록: 재활용 자산 / 환경 정보](#13-부록-재활용-자산--환경-정보)
 
 ---
 
@@ -35,18 +36,19 @@
 ### 0.1 본 문서의 사용법
 
 - §1~§7은 **참조 영역**. 작업 중 의문이 생기면 해당 절을 찾아 의사결정 근거로 사용.
-- §8은 **현재 페이즈 작업 영역**. 여기에 명시된 작업만 우선 진행. 완료 후 §9 다음 페이즈로 넘어가기 전에 사용자 확인.
-- §10은 **모든 작업에 적용되는 규칙**. 코드 스타일, 시크릿 관리, 커밋 컨벤션 등.
-- §11은 **변경 불가 결정 사항**. 임의로 뒤집지 말 것.
+- §8은 **후속 버전 백로그**. v1.1 / v1.5 / v2 로 유예된 항목. 임의로 당겨오지 말 것.
+- §9는 **모든 작업에 적용되는 규칙**. 코드 스타일, 시크릿 관리, 커밋 컨벤션 등.
+- §10은 **변경 불가 결정 사항**. 임의로 뒤집지 말 것.
+- 현재 진행 중인 작업은 본 문서가 아니라 [`TODO.md`](../TODO.md) 가 추적한다.
 
 ### 0.2 작업 진행 원칙
 
-1. **현재 페이즈(§8)의 작업만 수행**. 다음 페이즈로 진도를 빼지 말 것.
-2. **작업 단위로 커밋**. 한 커밋에 여러 페이즈 작업을 섞지 말 것.
-3. **시크릿 절대 커밋 금지** (§10.2 참조). 환경변수 또는 `application-secret.yml` 분리.
-4. **§11 결정을 임의로 변경하지 말 것**. 변경 필요 시 사용자에게 명시적 확인.
+1. **현재 진행 작업은 [TODO.md](../TODO.md)**. 백로그(§8)와 규칙(§9·§10)은 본 문서 참조.
+2. **작업 단위로 커밋** (§9.3 컨벤션).
+3. **시크릿 절대 커밋 금지** (§9.2 참조). 환경변수 또는 `application-secret.yml` 분리.
+4. **§10 결정을 임의로 변경하지 말 것**. 변경 필요 시 사용자에게 명시적 확인.
 5. **모르는 것은 추측하지 말 것**. 특히 외부 의존(VPS IP, API 키, 도메인) 관련해 모호하면 사용자에게 질문.
-6. **테스트 없이 완료 선언 금지** (§10.4).
+6. **테스트 없이 완료 선언 금지** (§9.4).
 
 ### 0.3 작업 외 영역
 
@@ -70,19 +72,19 @@
 **범위**:
 - **MVP**: 본인 + 아내 (2명, private)
 - **확장 가능성**: 가구(household) 단위 분리, 최대 20명 내외 (친구·가족 가구)
-- **플랫폼**: Flutter (iOS/Android), 추후 Web Admin 옵션
-- **호스팅**: 기존 kyuhyeong.com VPS 활용 (`account.kyuhyeong.com` 서브도메인 신규 추가)
+- **플랫폼**: ~~Flutter (iOS/Android)~~ → **Thymeleaf SSR 단일** (모바일 브라우저 우선, `max-width:640px` 폰 폭 강제). 2026-05-26 결정. 사유: Java 백엔드 커리어 집중.
+- **호스팅**: 기존 kyuhyeong.com VPS 활용. `account.kyuhyeong.com` (호스트 nginx → 컨테이너 8085) — 2026-05-27 운영 가동.
 
 ### 1.2 모노레포 구성 (현재 + 계획)
 
 | 모듈 | 상태 | 책임 |
 |---|---|---|
-| `account-ai` | ✅ **프로토타입 존재** (이번 페이즈에 멀티모듈 통합) | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
-| `account-api` | ⏳ §8 Week 1 | REST 엔드포인트, JWT 인증, 가구 격리 진입점 |
-| `account-core` | ⏳ §8 Week 1 | Entity, Repository, Service. Multi-tenant 격리의 본체 |
-| `account-batch` | ⏳ Week 4+ | 월말 집계, 이미지 압축/삭제, 알림 발송 |
-| `flutter-app` | ⏳ Week 2+ | 모바일 앱 (iOS/Android) |
-| `docs/` | ✅ 본 문서 | 설계 + 작업 지시서 |
+| `account-ai` | ✅ 운영 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 (`ClaudeVisionClient` / `ReceiptAnalysisService`) |
+| `account-api` | ✅ 운영 | **Thymeleaf SSR 컨트롤러**(`/web/**`) + **Spring Security 세션 + formLogin**. 영수증 인제스천 흐름. 가구 격리 진입점(`SessionHouseholdContextFilter`) |
+| `account-core` | ✅ 운영 | Entity 12개, Repository, Multi-tenant 격리 본체(`HouseholdContext` + Hibernate `@Filter`) + Flyway V1~V3 |
+| `account-batch` | ⏳ 비어 있음 | 월말 집계 / 이미지 정리 잡 (계획만, 구현 X) |
+| ~~`flutter-app`~~ | ❌ 제거됨 (2026-05-27) | M4 정리에서 디렉터리 삭제 |
+| `docs/` | ✅ 본 문서 + [`docs/deployment.md`](deployment.md) | 설계 + 운영 절차 |
 
 ### 1.3 핵심 외부 의존
 
@@ -90,7 +92,7 @@
 |---|---|---|---|
 | Claude API (Vision) | 영수증 OCR + 분류 | 영수증 1장 ₩20~30 (Sonnet 4.5) | 사용자가 console.anthropic.com에서 발급 필요 |
 | FCM (Firebase) | 푸시 알림 (P1) | 무료 | 추후 v1.1에서 셋업 |
-| Apple Developer | iOS TestFlight 배포 | $99/년 | 사용자 가입 필요 |
+| ~~Apple Developer~~ | ~~iOS TestFlight 배포~~ | ~~$99/년~~ | **불필요** — Flutter 폐기로 무효 (§10 #2). 네이티브 모바일 재도입 시에만 부활 |
 | kyuhyeong.com VPS | 호스팅 | 0원 (기존 활용) | ✅ 운영 중 |
 | MariaDB | DB | 0원 (VPS 내) | ✅ 설치됨 |
 
@@ -144,9 +146,10 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
 ### 3.1 사용자 흐름
 
 ```
-[1] 결제 후 영수증 사진 촬영 (Flutter 카메라)
+[1] 결제 후 영수증 사진 촬영 (모바일 브라우저 카메라
+                              <input type="file" accept="image/*" capture="environment">)
        ↓
-[2] 이미지 업로드 (multipart/form-data → /api/receipts)
+[2] 이미지 업로드 (multipart/form-data → POST /web/receipts)
        ↓
 [3] 백엔드: 이미지를 Claude Vision API에 전달
        ↓
@@ -157,9 +160,9 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
        ↓
 [5] DB에 거래 레코드(DRAFT) + 디스크에 원본 이미지 저장
        ↓
-[6] 앱에 결과 표시 → 사용자가 수정/확정 (1탭 컨펌)
+[6] receipts/confirm.html 렌더 → 사용자가 전체 필드 수정/확정 (1폼 제출)
        ↓
-[7] 가구 내 다른 멤버에게 실시간 알림 (FCM, v1.1)
+[7] 가구 내 다른 멤버에게 실시간 알림 (FCM, v1.1 — 현재 SSR 새로고침으로 대체)
 ```
 
 ### 3.2 분류 정확도 향상 전략
@@ -194,37 +197,40 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Flutter App (iOS/Android)                                  │
-│  - 카메라 / 거래 입력 / 대시보드 / 푸시 알림                  │
+│  Mobile Browser (Safari / Chrome — 폰 우선 SSR)             │
+│  - Thymeleaf 렌더링 HTML + Bootstrap 5 + Chart.js (차트만)   │
+│  - 카메라(file input capture) / 거래 입력 / 대시보드          │
 └──────────────────┬──────────────────────────────────────────┘
-                   │ HTTPS + JWT (household_id 클레임)
+                   │ HTTPS + Session Cookie (JSESSIONID)
 ┌──────────────────▼──────────────────────────────────────────┐
 │  nginx (account.kyuhyeong.com) — reverse proxy + SSL        │
+│  127.0.0.1:8085 → account-api 컨테이너                       │
 └──────────────────┬──────────────────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────────────────┐
 │  Spring Boot 3.3+ (Gradle multi-module, Java 21)            │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ account-api    REST + JWT + HouseholdContext 진입   │    │
+│  │ account-api    Thymeleaf SSR + Spring Security 세션  │    │
+│  │                SessionHouseholdContextFilter 진입    │    │
 │  ├─────────────────────────────────────────────────────┤    │
 │  │ account-core   Entity, Repository, Service          │    │
 │  │                Hibernate @Filter (가구 격리 본체)     │    │
 │  ├─────────────────────────────────────────────────────┤    │
 │  │ account-ai     Claude Vision 통합 (RestClient)       │    │
 │  ├─────────────────────────────────────────────────────┤    │
-│  │ account-batch  월말 집계, 이미지 정리, 알림 발송      │    │
+│  │ account-batch  (비어 있음 — 월말 잡 계획만)            │    │
 │  └─────────────────────────────────────────────────────┘    │
 └────────┬─────────────────────┬──────────────────┬───────────┘
          │                     │                  │
     ┌────▼────┐           ┌────▼────┐        ┌────▼────┐
     │ MariaDB │           │ Claude  │        │  FCM    │
-    │ (Docker)│           │   API   │        │ (Push)  │
+    │ (Docker)│           │   API   │        │ (v1.1)  │
     └─────────┘           └─────────┘        └─────────┘
          │
     ┌────▼─────────┐
     │ /mnt/data/   │  영수증 이미지 (서버 디스크, 가구별 격리)
     │ receipts/    │  /receipts/{household_id}/{yyyy}/{mm}/...
-    │   {hid}/...  │  Spring이 JWT 검증 후 stream으로 응답
+    │   {hid}/...  │  Spring 세션 검증 후 stream 으로 응답
     └──────────────┘
 ```
 
@@ -240,22 +246,21 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
 
 ## 5. 기술 스택
 
-### 5.1 프론트엔드 (Flutter)
+### 5.1 프론트엔드 (Thymeleaf SSR — 2026-05-26 마이그레이션 후)
 
-| 영역 | 라이브러리 | 용도 |
+| 영역 | 라이브러리 / 도구 | 용도 |
 |---|---|---|
-| 상태 관리 | `flutter_riverpod` | 전역 상태 (MyStar 패턴) |
-| 라우팅 | `go_router` | 선언형 라우팅, 딥링크 |
-| HTTP | `dio` + `retrofit` | API 클라이언트 (코드 생성) |
-| 카메라 | `image_picker` | 영수증 촬영 |
-| 이미지 처리 | `image` | 업로드 전 1280px 압축 |
-| 차트 | `fl_chart` | 대시보드 |
-| 로컬 캐시 | `drift` (SQLite) | 오프라인 모드, 동기화 큐 |
-| 푸시 | `firebase_messaging` | FCM |
-| 인증 저장 | `flutter_secure_storage` | JWT refresh token |
-| 폼/입력 | `reactive_forms` | 거래 입력 폼 |
-| 날짜 | `intl` | 한국어 로케일 |
-| 생체 인증 | `local_auth` | Face ID / 지문 |
+| 템플릿 엔진 | `spring-boot-starter-thymeleaf` | `templates/**/*.html` SSR |
+| 보안 dialect | `thymeleaf-extras-springsecurity6` | `sec:authorize` / `sec:authentication` |
+| UI 프레임워크 | Bootstrap 5.3.3 (webjars) | 그리드/카드/폼/네비/유틸리티 |
+| 차트 | Chart.js 4.4.3 (CDN) | 추이·순자산 차트 (페이지별 include) |
+| 카메라 | HTML5 `<input type="file" capture="environment">` | 모바일 브라우저 카메라 |
+| 폼 바인딩 | record DTO + @ModelAttribute + @Valid + BindingResult | th:field/setter 미사용 — `form` Map (원본 값) + `errors` Map (필드 에러) 재렌더 패턴 |
+| 클라이언트 JS | inline `<script>` (페이지당 0~10줄) | 영수증 저신뢰도 컨펌 가드, 차트 데이터 주입. 전역 `static/js/` 없음 |
+| 정적 CSS | `static/css/app.css` (단일 파일) | 폰 우선 폭 + safe-area + FAB 스타일 |
+| 인증 | Spring Security 세션 (HttpSession + JSESSIONID 쿠키) | formLogin |
+
+이전(2026-05-26 이전) Flutter 스택(`flutter_riverpod` / `go_router` / `dio` / `image_picker` / `fl_chart` / `drift` / `flutter_secure_storage` / `reactive_forms` / `local_auth`)은 **모두 폐기**. v1.5+ 네이티브 모바일 재도입 가능성은 별도 결정.
 
 ### 5.2 백엔드 (Spring Boot)
 
@@ -268,7 +273,7 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
 | Multi-tenancy | Hibernate `@Filter` + `HouseholdContext` (ThreadLocal) | §6.2 참조 |
 | DB | MariaDB 11.x | 기존 VPS 설치됨 |
 | 마이그레이션 | **Flyway** | DB 스키마 버전 관리 |
-| 인증 | Spring Security + JWT | HttpOnly 쿠키, `household_id` 클레임 (ITSM 패턴) |
+| 인증 | Spring Security 세션 + formLogin | `CustomUserDetails(userId, activeHouseholdId, role, email, passwordHash)` 가 principal 로 HttpSession 직렬화 저장. ~~JWT(HS256, 15분/30일)~~ M4(2026-05-27) 에 모두 제거 |
 | 검증 | Bean Validation | DTO 입력 검증 |
 | AI 클라이언트 | **Spring `RestClient`** (직접 호출) | Anthropic Java SDK는 추후 검토. 가상 스레드 호환 |
 | 이미지 처리 | `thumbnailator` 또는 `imgscalr` | 썸네일/압축 |
@@ -288,7 +293,7 @@ AI 분류는 변동지출 8개 중 하나로 매핑하는 케이스가 가장 �
 | SSL | Let's Encrypt (certbot, 기존) |
 | 도메인 | `account.kyuhyeong.com` (서브도메인 신규) |
 | CI/CD | GitHub Actions (KH Shop 패턴) |
-| 모바일 배포 | **TestFlight** (iOS, Apple Developer $99/년) + **Android APK Internal Track** |
+| 모바일 배포 | **별도 배포 없음** — 모바일 브라우저로 `account.kyuhyeong.com` 접속. ~~TestFlight/APK Internal Track~~ 은 Flutter 폐기와 함께 무효 |
 | 시크릿 관리 | `application-secret.yml` 분리 + 환경변수 (KH Shop 패턴) |
 
 ---
@@ -374,10 +379,10 @@ wedding_items  -- 결혼 일시 지출 (v1.1, 해당 가구만)
 
 ### 6.2 가구 격리 메커니즘 (4단계)
 
-1. **JWT 클레임**: 로그인 시 `household_id` 포함 (사용자가 여러 가구 소속이면 활성 가구 선택)
-2. **Spring 진입점**: 모든 컨트롤러 호출 시 `HouseholdContext` (ThreadLocal)에 주입. `OncePerRequestFilter` 사용, 응답 후 clear.
-3. **Hibernate `@Filter`**: 모든 도메인 엔티티에 `@Filter("householdFilter", condition = "household_id = :current")` 활성화
-4. **Repository 강제**: `findByHouseholdIdAnd*` 메서드만 노출, raw query 금지
+1. **세션 principal**: 로그인 성공 시 `CustomUserDetails(userId, activeHouseholdId, role, ...)` 를 HttpSession 에 저장. 사용자가 여러 가구 소속이면 활성 가구 선택은 v1.5. (이전엔 JWT `household_id` 클레임)
+2. **Spring 진입점**: `SessionHouseholdContextFilter`(OncePerRequestFilter) 가 principal 의 activeHouseholdId 를 `HouseholdContext` (ThreadLocal) 에 주입. 응답 후 clear (가상 스레드 재사용 시 누수 방지).
+3. **Hibernate `@Filter`**: 모든 도메인 엔티티에 `@Filter("householdFilter", condition = "household_id = :current")` 활성화 (`HouseholdFilterAspect` 가 `@Transactional` 진입 시 활성화). `HouseholdContext` 미설정이면 `-1` sentinel 로 0 rows.
+4. **Repository 강제**: `findAll` / `findOne(Specification)` 은 자동 필터 적용. **`findById` 는 PK 직접 로드라 필터가 안 걸려 격리 누수** — 이미 알려진 함정이고 `TransactionService.get/update` (M1), `NetWorthService.update*/delete*` (M3) 에서 `findOne(Specification)` 으로 교체됨. `User`/`Household`/`HouseholdMember` 는 비격리(@Filter 미적용) 이므로 코드로 직접 `findByHouseholdId` 가드 (관리자 비번 재설정에서 적용).
 
 ### 6.3 MVP 운영 (부부 단계 시드)
 
@@ -390,71 +395,76 @@ wedding_items  -- 결혼 일시 지출 (v1.1, 해당 가구만)
 
 ## 7. API 설계 / 인증 / 보안
 
-### 7.1 엔드포인트 요약
+### 7.1 엔드포인트 요약 (Thymeleaf SSR — 2026-05-27 M4 이후)
 
-모든 인증 API는 JWT에서 `household_id`를 추출하여 자동 격리. 명시적 path param 없음.
+모든 인증 경로는 세션 principal 의 `activeHouseholdId` 로 자동 격리. `/api/**` REST 엔드포인트는 M4 에서 전부 제거됨. 모든 화면은 SSR HTML 응답이며, POST 폼은 `_csrf` 토큰 자동 주입 (CSRF 활성).
 
 ```
-POST   /api/auth/login                   # 로그인 (JWT 발급, household_id 클레임)
-POST   /api/auth/refresh                 # 토큰 갱신
-GET    /api/auth/me                      # 본인 정보 + 소속 가구 목록
-POST   /api/auth/switch-household        # 가구 전환 (여러 가구 소속 시, v1.5)
+# 인증 / 진입점 (WebAuthController, Spring Security)
+GET    /                                 # → /web/home 리다이렉트
+GET    /login                            # 로그인 폼 (auth/login.html)
+POST   /login                            # formLogin (usernameParameter=email)
+POST   /logout                           # Spring Security 자동 처리 → /login?logout
 
-POST   /api/receipts                     # 영수증 업로드 (multipart)
-                                           → AI 분석 후 DRAFT 거래 생성
-GET    /api/receipts/{id}                # 영수증 + 분석 결과 조회
-GET    /api/receipts/{id}/image          # 이미지 stream (JWT 검증 후)
+# 홈 (WebHomeController)
+GET    /web/home                         # 이번 달 카드 + 예산 초과 배너 + 진입 버튼
 
-POST   /api/transactions                 # 수동 거래 입력
-PUT    /api/transactions/{id}            # 거래 수정 (카테고리 변경 등)
-                                           → merchant_history 학습 + history 적재
-DELETE /api/transactions/{id}            # soft delete
-GET    /api/transactions                 # 필터/페이징
-GET    /api/transactions/since/{ts}      # 동기화용 (가구 내 변경분)
+# 거래 (WebTransactionController)
+GET    /web/transactions                 # 목록 — 날짜 그룹, 필터(from/to/categoryId/status), 페이지네이션
+GET    /web/transactions/new             # 입력 폼
+POST   /web/transactions/new             # 거래 생성 (record DTO + @Valid, 에러 시 재렌더)
+GET    /web/transactions/{id}            # 수정 폼 (DRAFT 확정 체크박스)
+POST   /web/transactions/{id}            # 전체필드 편집 + 선택적 DRAFT→CONFIRMED
+                                           ↑ 영수증 컨펌도 이 엔드포인트 재사용 (confirm=true)
 
-GET    /api/dashboard/current-month      # 이번 달 요약 (홈 화면)
-GET    /api/dashboard/networth           # 순자산 추이 (v1.1)
-GET    /api/dashboard/wedding            # 결혼 진행률 (v1.1)
+# 영수증 (WebReceiptController)
+GET    /web/receipts/new                 # 업로드 폼 (file capture)
+POST   /web/receipts                     # multipart 업로드 (10MB) → Claude 분석 → confirm.html
 
-GET    /api/categories                   # 카테고리 + 예산 (가구별)
-PUT    /api/categories/{id}/budget       # 예산 수정
+# 대시보드
+GET    /web/trend                        # 최근 6개월 추이 차트 (WebTrendController)
+GET    /web/budget                       # 카테고리별 진행률 + 인라인 예산 폼 (WebBudgetController)
+POST   /web/budget                       # 카테고리 예산 수정
+GET    /web/networth?ym=YYYY-MM          # 월 스냅샷 + 12개월 차트 + 자산/부채 인라인 편집 (WebNetWorthController)
+POST   /web/networth/{assets|liabilities}                  # 추가
+POST   /web/networth/{assets|liabilities}/{id}             # 인라인 편집 (이름·종류·잔액)
+POST   /web/networth/{assets|liabilities}/{id}/delete      # 삭제
 
-POST   /api/assets, /api/liabilities     # 순자산 입력 (v1.1)
-GET    /api/networth/history?months=12
-
-POST   /api/wedding-items                # (v1.1)
-PUT    /api/wedding-items/{id}
-GET    /api/wedding-items
+# 관리자 (WebAdminController) — OWNER 전용 (SecurityConfig hasRole)
+GET    /web/admin                        # 가구 멤버 목록
+POST   /web/admin/users/{userId}/password # 비밀번호 재설정 (8자 이상)
 
 # v1.5 (가구 확장 시)
-POST   /api/households                   # 가구 생성
-POST   /api/households/{id}/invite       # 멤버 초대 (이메일)
-DELETE /api/households/{id}/members/{userId}
+# 회원가입 / 가구 초대 / 멤버 추방 — 현재 raw SQL + 관리자 비번 재설정으로 갈음
 ```
 
 ### 7.2 실시간 동기화 전략
 
-가구 내 한 명이 거래를 추가/수정하면 다른 멤버 단말에도 반영되어야 함.
+SSR 단일 — 가구 내 다른 멤버의 변경분은 페이지 **새로고침**으로 반영. 별도 풀링/푸시 없음.
 
-- **풀링 (MVP)**: 앱이 30~60초마다 `/api/transactions/since/{timestamp}` 호출. 배터리/네트워크 부담 적음. 2~20인 가구에 충분.
-- **FCM Silent Push (v1.1)**: 거래 발생 시 가구 내 다른 멤버 단말에 silent push → 앱이 재조회. 즉시성 ↑.
+- **즉시성 부족 케이스**: 부부가 동시에 같은 거래를 입력할 가능성 — 실사용에서는 매우 드물고, 발생해도 DB 레벨에서 두 row 가 별도로 적재되며 격리 영향 없음.
+- **FCM Silent Push (v1.1)**: 별도 클라이언트 앱 부활 시에만 의미. 현재는 폐기 항목.
 
 ### 7.3 인증 흐름
 
-1. 이메일 + 비밀번호 로그인 → JWT 발급 (access 15분, refresh 30일)
-2. JWT 클레임: `user_id`, `household_id`(현재 활성), `role`
-3. Access token은 메모리, refresh token은 `flutter_secure_storage`
-4. 자동 로그인 (앱 실행 시 refresh로 access 갱신)
-5. 여러 가구 소속 시 `/api/auth/switch-household` → 새 JWT 재발급 (v1.5)
+1. 이메일 + 비밀번호 로그인 (`POST /login`, `usernameParameter=email`)
+2. `CustomUserDetailsService.loadUserByUsername` 이 user + 첫 `HouseholdMember` 조회 → `CustomUserDetails(userId, activeHouseholdId, role, email, passwordHash)` 반환
+3. Spring Security 가 BCrypt 검증 → SecurityContext + HttpSession 에 principal 저장 (JSESSIONID 쿠키 발급)
+4. 매 요청 `SessionHouseholdContextFilter` 가 principal.activeHouseholdId 를 `HouseholdContext` 에 주입 → finally clear
+5. 로그아웃: `POST /logout` (Spring Security) → 세션 무효화 → `/login?logout`
+6. 여러 가구 소속 시 활성 가구 전환은 v1.5 (UI 미구현)
+
+> ~~JWT(HS256, 15분/30일), `flutter_secure_storage` 토큰 보관, `/api/auth/refresh` 갱신, `/api/auth/switch-household`~~ M4(2026-05-27) 에 인프라(`JwtAuthenticationFilter`/`JwtTokenProvider`/`JwtProperties`/`AuthController`/`AuthService`/`AuthDtos`)와 함께 모두 제거.
 
 ### 7.4 보안 추가 조치
 
-- **회원가입 외부 차단** (MVP): 가입 화면 없음, DB 시드로 2명 등록. `robots.txt` + `X-Robots-Tag: noindex`로 검색엔진 노출 차단
-- **앱 진입 시 생체 인증** (`local_auth`)
-- **Rate Limiting**: nginx + Spring 양쪽에서 IP/사용자별
-- **이미지 접근 제어**: 영수증은 JWT 검증 후 Spring stream (nginx 직접 노출 X)
-- **CORS**: 모바일 앱만 허용 (웹 클라이언트 없음)
-- **HTTPS 강제**: HSTS, http → https 리다이렉트
+- **회원가입 외부 차단** (MVP): 가입 화면 없음, DB 시드로 2명 등록. `robots.txt` + `X-Robots-Tag: noindex` 로 검색엔진 노출 차단
+- ~~앱 진입 시 생체 인증 (`local_auth`)~~ — Flutter 폐기로 무효. 브라우저 OS 잠금에 의존
+- **Rate Limiting**: nginx + Spring 양쪽에서 IP/사용자별 (현재 미구현, v1.1 후속)
+- **이미지 접근 제어**: 영수증은 세션 검증 후 Spring stream (nginx 직접 노출 X)
+- **CSRF**: webChain 기본 활성 — 모든 POST 폼은 `_csrf` 자동 주입 (Thymeleaf-Spring 통합). 임의로 끄지 말 것
+- ~~CORS: 모바일 앱만 허용~~ — SSR 단일이라 same-origin, CORS 설정 불필요
+- **HTTPS 강제**: HSTS, http → https 리다이렉트 (호스트 nginx 담당)
 - **백업**: MariaDB 일일 덤프 (cron) + 영수증 이미지 주 1회 Cloudflare R2 (무료 10GB)
 
 ### 7.5 영수증 보관 정책
@@ -466,231 +476,15 @@ DELETE /api/households/{id}/members/{userId}
 
 ---
 
-## 8. ✅ 다음 작업: Week 1
+## 8. 후속 버전 백로그
 
-> **현재 페이즈**. 에이전트는 이 절의 작업만 우선 진행. 완료 후 §9의 다음 페이즈로 넘어가기 전 사용자 확인.
-
-### 8.1 현재 상태 점검
-
-**이미 존재**:
-- ✅ Repo: <https://github.com/LeeKyuHyeong/account-app> (Public, 초기 커밋만)
-- ✅ `docs/account.md` (본 문서)
-- ✅ `account-ai/` 프로토타입 (Claude Vision 통합, RestClient 기반, 단위 테스트 6개)
-- ✅ `.gitignore` (시크릿 사전 차단 패턴 포함)
-- ✅ `README.md` (최상위)
-
-**없음 (Week 1에 생성)**:
-- ❌ Gradle 멀티 모듈 루트 (`settings.gradle.kts`, 루트 `build.gradle.kts`)
-- ❌ `account-core` 모듈 (Entity, Repository, Multi-tenant 격리 본체)
-- ❌ `account-api` 모듈 (REST, JWT, HouseholdContext)
-- ❌ Flyway 마이그레이션 (`V1__init_schema.sql`, `V2__seed.sql`)
-- ❌ `docker-compose.yml` (MariaDB 컨테이너)
-- ❌ 격리 검증 통합 테스트 (Testcontainers)
-
-### 8.2 Week 1 작업 순서 (체크리스트)
-
-작업은 순서대로 진행. 각 작업 완료 시 커밋 + 다음 작업.
-
-#### Task 1. Gradle 멀티 모듈 루트 셋업 (반나절)
-
-**목표**: 빈 모듈 3개(`account-core`, `account-api`, `account-batch`) + 기존 `account-ai` 통합. `./gradlew :account-api:bootRun` 가능 상태.
-
-- [ ] 루트 `settings.gradle.kts` 작성
-  ```kotlin
-  rootProject.name = "account-app"
-  include("account-core", "account-api", "account-ai", "account-batch")
-  ```
-- [ ] 루트 `build.gradle.kts` 작성 (Java 21 toolchain, Spring Boot 의존성 관리, 공통 의존성)
-- [ ] 각 모듈 `build.gradle.kts` 작성 (의존성 그래프: api → core, batch → core, ai 독립)
-- [ ] `gradle/wrapper/` (Gradle Wrapper) 추가 — `gradle wrapper --gradle-version 8.10`
-- [ ] `account-ai` 모듈의 기존 build.gradle.kts를 멀티 모듈에 편입 (standalone bootRun 제거, 의존성 정리)
-- [ ] 빌드 확인: `./gradlew build` 성공
-- [ ] Acceptance: 빈 `AccountApiApplication.java` 작성하고 `./gradlew :account-api:bootRun` 정상 기동 (DB 연결 전 단계라 에러 OK, "Started AccountApiApplication" 로그만 확인)
-
-**커밋 메시지**: `feat(build): setup gradle multi-module structure`
-
-#### Task 2. MariaDB Docker + Flyway 스키마 (반나절)
-
-**목표**: MariaDB 컨테이너 + Flyway가 부팅 시 자동으로 스키마 생성. 가구 2개 + 사용자 4명 시드 (격리 테스트용).
-
-- [ ] 루트에 `docker-compose.yml` 작성 (MariaDB 11.x, 포트 3306, volume `./data/mariadb`)
-- [ ] `account-core/src/main/resources/db/migration/V1__init_schema.sql`
-  - §6.1의 모든 테이블 (households, household_members, users, categories, transactions, transaction_history, receipts, merchant_history, monthly_summaries, assets, liabilities, wedding_items)
-  - 인덱스 §6.1 명시대로
-  - 외래키는 명시적으로 (CASCADE 정책은 안전 우선: ON DELETE RESTRICT 기본)
-- [ ] `V2__seed_dev.sql` — 개발 환경용 시드:
-  - households 2개 (`우리집`, `테스트가구`) — 격리 검증용
-  - users 4명, household_members 4건
-  - categories: 우리집 22개(§2.3), 테스트가구 5개 (격리 검증용으로 다르게)
-- [ ] `application.yml` 에 Flyway + JPA 설정
-- [ ] 부팅 후 `SHOW TABLES;` 로 13개 테이블 확인
-- [ ] Acceptance: `./gradlew :account-api:bootRun` 시 Flyway가 V1, V2 자동 적용. 두 가구 데이터 시드 확인.
-
-**커밋 메시지**: `feat(core): add flyway migrations with seed data for two households`
-
-#### Task 3. JPA Entity + Repository (1일)
-
-**목표**: §6.1의 모든 테이블에 대응하는 Entity와 기본 Repository. 단 본 작업에서 Hibernate `@Filter`는 아직 활성화 X (Task 4에서 활성화).
-
-- [ ] `account-core/src/main/java/com/kyuhyeong/account/core/entity/` 하위에 Entity 작성:
-  - `User`, `Household`, `HouseholdMember`, `Category`, `Transaction`, `TransactionHistory`, `Receipt`, `MerchantHistory`, `MonthlySummary`, `Asset`, `Liability`, `WeddingItem`
-- [ ] 모든 도메인 Entity(households, household_members 제외)에 `household_id` 필드 + `@ManyToOne(fetch = LAZY)`
-- [ ] enum: `CategoryType`, `TransactionStatus`, `HouseholdRole`, `PlanType`, `ChangeType`
-- [ ] Lombok: `@Getter`, `@NoArgsConstructor(access=PROTECTED)`, `@AllArgsConstructor(access=PRIVATE)`, `@Builder` (Setter는 절대 X — §10.1 참조)
-- [ ] Repository 인터페이스 — Spring Data JPA `JpaRepository` 상속, raw query 메서드 일체 추가 금지 (§10.5)
-- [ ] Entity ↔ DTO 변환은 일단 Entity 직접 사용. Mapping 레이어는 Task 6 (Controller 작업) 때 추가.
-
-**커밋 메시지**: `feat(core): add JPA entities and repositories for all domain tables`
-
-#### Task 4. HouseholdContext + Hibernate Filter (1일) — 본 페이즈 핵심
-
-**목표**: 두 가구 데이터가 같은 DB에 있을 때, 가구#1로 인증된 요청이 가구#2 데이터를 절대 못 보게 한다. 통합 테스트로 강제 검증.
-
-- [ ] `account-core/.../tenant/HouseholdContext.java`
-  ```java
-  public final class HouseholdContext {
-      private static final ThreadLocal<Long> CURRENT = new ThreadLocal<>();
-      public static void set(Long householdId) { CURRENT.set(householdId); }
-      public static Long get() {
-          Long id = CURRENT.get();
-          if (id == null) throw new IllegalStateException("HouseholdContext not set");
-          return id;
-      }
-      public static void clear() { CURRENT.remove(); }
-  }
-  ```
-- [ ] 모든 도메인 Entity에 `@FilterDef` + `@Filter` 추가
-  ```java
-  @FilterDef(name = "householdFilter",
-             parameters = @ParamDef(name = "currentHouseholdId", type = Long.class))
-  @Filter(name = "householdFilter",
-          condition = "household_id = :currentHouseholdId")
-  ```
-- [ ] `HouseholdFilterAspect` 또는 `EntityManager` 주입 후 매 요청마다 필터 활성화 (Spring AOP 또는 `OncePerRequestFilter` 내에서)
-- [ ] `account-api/.../filter/HouseholdContextFilter.java` — Servlet Filter 또는 Spring Filter:
-  - JWT 파싱 후 `household_id` 추출 (Task 5에서 JWT 도입 전이라 일시적으로 헤더 `X-Household-Id` 사용. Task 5에서 JWT로 교체)
-  - `HouseholdContext.set(id)` + `entityManager.unwrap(Session.class).enableFilter(...).setParameter(...)`
-  - finally 블록에서 `HouseholdContext.clear()`
-- [ ] **격리 검증 통합 테스트** (`account-api/src/test/...`, Testcontainers + MariaDB):
-  - 가구#1, 가구#2 각각 시드
-  - `X-Household-Id: 1` 헤더로 `GET /api/categories` 호출 → 가구#1 카테고리 22개만 반환되는지
-  - `X-Household-Id: 2` 헤더로 동일 호출 → 가구#2 카테고리 5개만 반환되는지
-  - 두 결과의 ID 집합이 disjoint 한지 (교집합 0)
-- [ ] Acceptance: 위 통합 테스트 통과. **이 테스트는 본 프로젝트에서 가장 중요한 보안 검증**이라 절대 빠뜨리지 말 것.
-
-**커밋 메시지**: `feat(core): add multi-tenant isolation via HouseholdContext + Hibernate filter`
-
-#### Task 5. JWT 인증 셋업 (1일)
-
-**목표**: ITSM toy 프로젝트의 JWT 패턴 재활용. 로그인 → JWT 발급 → 헤더 검증 → `HouseholdContext` 주입까지의 흐름 완성.
-
-- [ ] `account-api/.../security/JwtTokenProvider.java` — access/refresh 발급, 검증, 클레임 추출
-  - 클레임: `sub`(user_id), `household_id`, `role`
-  - access 15분 / refresh 30일
-  - secret은 `application-secret.yml` 분리 (`account.jwt.secret`)
-- [ ] `JwtAuthenticationFilter` (Spring Security `OncePerRequestFilter`):
-  - Authorization 헤더 또는 HttpOnly 쿠키에서 JWT 추출
-  - 검증 → `HouseholdContext.set(household_id)`
-  - finally clear
-- [ ] `SecurityConfig` — `/api/auth/**` 외 인증 필수
-- [ ] `AuthController`:
-  - `POST /api/auth/login` — 이메일 + 비밀번호 검증 (BCrypt), 사용자가 여러 가구 소속이면 활성 가구 결정 (지금은 첫 번째 가구 자동 선택)
-  - `POST /api/auth/refresh`
-  - `GET /api/auth/me` — 현재 사용자 + 소속 가구 목록
-- [ ] Task 4의 임시 `X-Household-Id` 헤더 처리 제거 — JWT 클레임에서 추출하도록 교체
-- [ ] Task 4의 격리 검증 테스트를 JWT 기반으로 수정 (로그인 → 토큰 받기 → API 호출)
-- [ ] Acceptance: 사용자#1 토큰으로 가구#2 자원 접근 시 빈 결과 또는 404.
-
-**커밋 메시지**: `feat(api): add JWT authentication with household_id claim`
-
-#### Task 6. account-ai 모듈 멀티모듈 통합 (반나절)
-
-**목표**: 기존 `account-ai` 프로토타입의 `MerchantHistoryProvider`를 `account-core`의 JPA 구현체로 연결. `ReceiptController`를 `account-api`로 이전 (`@RestController` 진입점은 api 모듈에 위치).
-
-- [ ] `account-core`에 `JpaMerchantHistoryProvider implements MerchantHistoryProvider` 추가
-  ```java
-  @Service
-  public class JpaMerchantHistoryProvider implements MerchantHistoryProvider {
-      private final MerchantHistoryRepository repo;
-      @Override
-      public MerchantHistoryContext getRecentHistory(Long householdId, int maxEntries) {
-          return new MerchantHistoryContext(
-              householdId,
-              repo.findTopByHouseholdIdOrderByLastUsedAtDesc(
-                      householdId, PageRequest.of(0, maxEntries))
-                  .stream()
-                  .map(r -> new MerchantHistoryContext.Entry(
-                      r.getMerchantName(), r.getCategory().getName(),
-                      r.getCount(), r.getLastUsedAt()))
-                  .toList()
-          );
-      }
-  }
-  ```
-- [ ] `account-ai`에서 `ReceiptController` 제거 → `account-api`에 동일 컨트롤러 이전. JWT에서 `household_id` 추출하도록 `X-Household-Id` 헤더 처리 제거.
-- [ ] `account-api/build.gradle.kts`에 `implementation(project(":account-ai"))` 추가
-- [ ] 영수증 업로드 → DRAFT 거래 자동 생성 흐름 추가 (Task 2의 transactions 테이블에 적재)
-- [ ] 이미지 저장 위치: `/mnt/data/receipts/{household_id}/{yyyy}/{mm}/{uuid}.jpg` (개발 환경은 `./data/receipts/...`)
-- [ ] 통합 테스트: 영수증 업로드 → DRAFT 거래 생성 → 본인 가구로만 조회됨
-- [ ] Acceptance: `curl -X POST .../api/receipts -F "image=@..."` 로 실제 분석 + DB 저장까지 동작 (Claude API 키 있는 환경에서)
-
-**커밋 메시지**: `feat(api): integrate account-ai with multi-module structure`
-
-### 8.3 Week 1 완료 기준
-
-위 6개 Task가 모두 완료되고 다음이 보장될 때 Week 1 종료:
-
-1. ✅ `./gradlew build` 성공 (모든 모듈)
-2. ✅ `docker-compose up -d` 로 MariaDB 기동 + Flyway 자동 마이그레이션 적용
-3. ✅ `./gradlew :account-api:bootRun` 정상 기동, `/api/auth/login` 호출 가능
-4. ✅ **격리 검증 통합 테스트 통과** (가장 중요)
-5. ✅ `curl` 로 영수증 업로드 → Claude 분석 → DRAFT 거래 생성 → 본인 가구로만 조회됨
-6. ✅ 시크릿이 한 줄도 커밋되지 않음 (§10.2 확인)
-
-Week 1 완료 시 사용자에게 확인 요청 → 승인 후 Week 2 (Flutter 셋업) 진행.
-
----
-
-## 9. 개발 로드맵 (Week 2-6 + 이후)
-
-### Week 2-3: Flutter 셋업 + 거래 입력 화면
-
-- [ ] `flutter-app` 모듈 추가 (`flutter create flutter_app`)
-- [ ] Riverpod + go_router + dio 셋업
-- [ ] 로그인 화면 + JWT 토큰 자동 갱신
-- [ ] 거래 목록 화면 + 필터
-- [ ] 수동 거래 입력 폼
-
-### Week 4: 카메라 + 영수증 촬영
-
-- [ ] `image_picker` 통합
-- [ ] 클라이언트 측 1280px 압축 (`image` 라이브러리)
-- [ ] 업로드 → 분석 결과 화면 → 컨펌 흐름
-- [ ] 신뢰도별 UI 분기 (자동 확정 / 컨펌 / 수동 분류)
-
-### Week 5: 학습 + 대시보드
-
-- [ ] `merchant_history` 학습 피드백 루프 (사용자 수정 시 UPSERT)
-- [ ] 홈 화면 — 이번 달 카드 (수입/지출/잉여금)
-- [ ] 카메라 FAB + 앱 아이콘 Quick Action
-- [ ] 월별 집계 API + `MonthlySummary` 사전 계산 배치
-- [ ] 카테고리별 추이 차트 (`fl_chart`)
-
-### Week 6: 배포
-
-- [ ] `account.kyuhyeong.com` 서브도메인 추가 (nginx + Let's Encrypt)
-- [ ] Docker Compose 운영 stack 구성
-- [ ] GitHub Actions CI/CD (KH Shop 패턴)
-- [ ] Android APK Internal Track (본인 Galaxy 단말 설치)
-- [ ] ~~TestFlight 빌드 + 부부 단말 설치~~ — §11 결정 #2 변경에 따라 유예. Mac + Apple Developer 확보 후 보충 페이즈에서 진행
+> 마이그레이션(M0~M4) + 운영 배포까지의 작업 단위와 의사결정 과정은 **git log + [`TODO.md`](../TODO.md) + commit history** 에 있다. 본 절은 **아직 안 한 일**만 둔다.
 
 ### v1.1 (MVP 후 점진)
 
-- 순자산 화면 (자산/부채 + 추이)
 - 결혼 일시 지출 화면
-- FCM 푸시 (silent push 동기화 + 알림)
-- 예산 초과 경고
-- 영수증 압축/삭제 배치 잡
+- FCM 푸시 (silent push 동기화 + 알림) — 별도 클라이언트 앱 재도입 시에만 유효, SSR 단일 동안은 새로고침
+- 영수증 단계적 압축/삭제 배치 잡 (`account-batch` 첫 잡 후보)
 
 ### v1.5 (가구 확장 시)
 
@@ -711,9 +505,9 @@ Week 1 완료 시 사용자에게 확인 요청 → 승인 후 Week 2 (Flutter �
 
 ---
 
-## 10. 작업 규칙
+## 9. 작업 규칙
 
-### 10.1 코드 스타일
+### 9.1 코드 스타일
 
 - **Lombok 사용 OK**. `@Getter`, `@Builder`, `@RequiredArgsConstructor`, `@NoArgsConstructor(access=PROTECTED)`, `@AllArgsConstructor(access=PRIVATE)` 까지.
 - **`@Setter` 절대 금지**. Entity는 비즈니스 메서드를 통해서만 상태 변경. DTO는 record 또는 final 필드.
@@ -724,7 +518,7 @@ Week 1 완료 시 사용자에게 확인 요청 → 승인 후 Week 2 (Flutter �
 - **Java 21 패턴 적극 활용**: record, sealed, switch expression, pattern matching.
 - **가상 스레드 활성화**: `application.yml`에 `spring.threads.virtual.enabled: true`
 
-### 10.2 시크릿 관리
+### 9.2 시크릿 관리
 
 **절대 커밋하지 말 것**:
 - `application-secret.yml`, `application-secret.yaml`, `application-secret.properties`
@@ -751,7 +545,7 @@ account:
     password: ${ACCOUNT_DB_PASSWORD}
 ```
 
-### 10.3 커밋 메시지 컨벤션
+### 9.3 커밋 메시지 컨벤션
 
 Conventional Commits 형식:
 
@@ -764,23 +558,23 @@ Conventional Commits 형식:
 ```
 
 - **type**: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `build`, `ci`
-- **scope**: `core`, `api`, `ai`, `batch`, `flutter`, `build`, `infra`
+- **scope**: `core`, `api`, `ai`, `batch`, `build`, `infra` (~~`flutter`~~ 폐기, 마이그레이션 후 SSR 변경은 `api` scope 으로 통합)
 - **예시**:
   - `feat(core): add Household and HouseholdMember entities`
-  - `feat(api): integrate JwtAuthenticationFilter with HouseholdContext`
-  - `test(core): add tenant isolation integration test`
+  - `feat(api): add OWNER-only admin page for password reset`
+  - `test(api): mock NetWorthService isolation guard`
   - `fix(ai): handle code-fenced JSON response from Claude`
-  - `docs: update Week 1 task progress`
+  - `docs: update §7 endpoints to /web/** after SSR migration`
 
-### 10.4 테스트 정책
+### 9.4 테스트 정책
 
-- **격리 검증 테스트는 필수**. §8.2 Task 4의 통합 테스트는 절대 빠뜨리지 말 것.
+- **격리 검증은 필수**. 거래 / 영수증 / 순자산 / 카테고리 / 예산 등 격리 엔티티에 새 조회·수정 경로를 추가할 때 `findById`(필터 미적용) 함정에 빠지지 말 것 — `findOne(Specification)` 또는 `findAll().filter()` 패턴 사용. `User`/`Household`/`HouseholdMember` 비격리 엔티티는 코드로 `findByHouseholdId*` 가드. 자동 회귀 테스트(`HouseholdIsolationIntegrationTest`)는 M4 에서 제거됐으므로 owner1 / owner2 / 익명 세 세션으로 **수동 검증**.
 - **단위 테스트는 핵심 비즈니스 로직만**. Getter/Setter 같은 trivial 테스트는 X.
 - **DB 통합 테스트는 Testcontainers**. H2 등 인메모리 DB로 대체 X (방언 차이).
 - **테스트 격리**: 각 테스트는 자체 데이터 시드. 다른 테스트의 부산물에 의존 X.
 - **AssertJ 사용**. JUnit assertions 보다 가독성 ↑.
 
-### 10.5 의존성 / 데이터 접근 규칙
+### 9.5 의존성 / 데이터 접근 규칙
 
 - **`account-ai`는 `account-core`에 의존하지 않음** (인터페이스만 의존: `MerchantHistoryProvider`). 단방향 결합도 유지.
 - **`account-api`는 `account-core` + `account-ai`에 의존**.
@@ -788,36 +582,36 @@ Conventional Commits 형식:
 - **Repository에 raw SQL 메서드 추가 금지**. 메서드 이름 규칙 또는 QueryDSL 사용. `@Query` 어노테이션 사용 시 사용자에게 사유 보고.
 - **`household_id` 없는 메서드 정의 금지**. 모든 Repository 조회 메서드는 `findByHouseholdIdAnd*` 형태.
 
-### 10.6 모르는 것 처리
+### 9.6 모르는 것 처리
 
 - 외부 의존(IP, 도메인, API 키, 계정 정보)이 명확하지 않으면 **추측 금지**. 사용자에게 명시적 질문.
-- §11 결정 사항 변경이 필요해 보이면 **임의 변경 금지**. 사용자에게 사유와 영향 보고 후 승인.
+- §10 결정 사항 변경이 필요해 보이면 **임의 변경 금지**. 사용자에게 사유와 영향 보고 후 승인.
 - 새 라이브러리 도입 시 **이유 + 대안 비교**를 커밋 메시지나 PR 본문에 명시.
 
 ---
 
-## 11. 확정된 결정 사항 (7개)
+## 10. 확정된 결정 사항
 
 | # | 항목 | 결정 | 변경 시 영향 |
 |---|---|---|---|
 | 1 | Java 버전 | **Java 21** + 가상 스레드 | toolchain 전체 재설정 |
-| 2 | iOS 배포 | **유예 — Android-first MVP** (개발자 본인 Galaxy 단일 단말 보유. Mac + Apple Developer $99/년 확보 시점에 재검토) | 부부 테스트 단계에서 아내 iPhone 에 설치 불가 — Week 5~6 진입 시 재의논 |
+| 2 | ~~iOS 배포~~ | **무효(2026-05-26)** — Flutter 폐기, SSR 단일. 모든 폰은 브라우저로 접속 | 네이티브 모바일 재도입 시 별도 결정 |
 | 3 | Claude API | **별도 키 발급** + Console 한도 설정 ($10/월) | Anthropic 결제 카드 등록 |
 | 4 | 영수증 보관 | **5년 + 단계적 압축 + 가구별 정책** | `households.data_retention_months` 활용 |
 | 5 | 거래 권한 | **가구 멤버 모두 수정 + 변경 이력 로그** | `transaction_history` 자동 적재 |
-| 6 | 첫 화면 | **홈 + 카메라 FAB + 앱 아이콘 Quick Action** | Flutter UX 패턴 |
-| 7 | Multi-tenant | **모든 도메인 테이블 `household_id` + Hibernate Filter + JWT 클레임** | 본 프로젝트 가장 중요한 결정 — 변경 시 전면 재작업 |
+| 6 | 첫 화면 | **홈 + 카메라 FAB** (~~앱 아이콘 Quick Action~~ 은 네이티브 전용이라 무효). 2026-05-28 FAB 구현 — `fragments/layout.html` 의 fixed 우하단 anchor → `/web/receipts/new`, `/web/receipts/*` 자기 자신에선 숨김 | 변경 시 FAB CSS(`.fab-camera`) + `body { padding-bottom }` 도 함께 |
+| 7 | Multi-tenant | **모든 도메인 테이블 `household_id` + Hibernate Filter + 세션 principal** (이전엔 JWT 클레임) | 본 프로젝트 가장 중요한 결정 — 변경 시 전면 재작업 |
 
 **MVP에서 의도적으로 제외**:
 - 회원가입/초대 화면 (v1.5)
-- OWNER/MEMBER 역할 차등 (v1.5)
+- OWNER/MEMBER 역할 차등 (v1.5) — 단, 관리자 페이지의 OWNER 게이트는 최소 적용 (운영 비번 재설정 UI)
 - 가구별 카테고리 커스터마이징 UI (v1.5)
-- FCM 푸시 (Week 6은 풀링)
-- 결혼 일시 지출 / 순자산 화면 (v1.1)
+- FCM 푸시 (v1.1) — SSR 단일 동안은 새로고침으로 갈음
+- 결혼 일시 지출 화면 (v1.1)
 
 ---
 
-## 12. 비용 추정
+## 11. 비용 추정
 
 | 항목 | 부부 단계 | 20명 확장 단계 |
 |---|---|---|
@@ -825,13 +619,13 @@ Conventional Commits 형식:
 | 도메인 | 0원 (서브도메인) | 0원 |
 | Claude API | 약 ₩5,000/월 (영수증 200건 × Sonnet 4.5) | 약 ₩50,000/월 (10배) — Haiku 시 ₩10,000 |
 | FCM | 0원 (무료 티어) | 0원 |
-| Apple Developer | ~~$99/년~~ → **0원 (유예, §11 #2)**. iOS 진입 시 ₩11,000/월 추가 | 진입 시 동일 |
+| Apple Developer | ~~$99/년~~ → **0원 (Flutter 폐기로 무효, §10 #2)**. 네이티브 모바일 재도입 시에만 부활 | 진입 시 동일 |
 | 백업 스토리지 | 0원 (Cloudflare R2 무료 10GB) | 동일 |
 | **합계** | **약 ₩5,000/월** (iOS 진입 전) | **약 ₩10,000~50,000/월** |
 
 ---
 
-## 13. 확장성 / 사업화 가능성
+## 12. 확장성 / 사업화 가능성
 
 기술적으로는 multi-tenant 설계로 자연스럽게 확장 가능:
 
@@ -847,25 +641,22 @@ Conventional Commits 형식:
 
 ---
 
-## 14. 부록: 재활용 자산 / 환경 정보
+## 13. 부록: 재활용 자산 / 환경 정보
 
-### 14.1 본인 코드 재활용 가능 지점
+### 13.1 본인 코드 재활용 가능 지점
 
-- **ITSM toy 프로젝트** (현재 진행 중):
-  - Gradle 멀티 모듈 구조 → §8.2 Task 1 참조
-  - JWT + HttpOnly 쿠키 → §8.2 Task 5 참조
-  - Spring Batch 9개 잡 → Week 4 배치 잡 참조
+- **ITSM toy 프로젝트** (참고용 — 이미 본 프로젝트 코드에 적용 완료):
+  - Gradle 멀티 모듈 구조
+  - ~~JWT + HttpOnly 쿠키~~ — Flutter/REST 폐기로 무관해짐, 세션 기반으로 전환
+  - Spring Batch 9개 잡 → `account-batch` 첫 잡 작성 시 참고
   - 환경 변수 분리 패턴
 
 - **KH Shop**:
-  - `application-secret.properties` 분리 패턴 → §10.2
-  - GitHub Actions CI/CD → Week 6 배포
-  - OAuth2 (Google/Kakao/Naver) → v1.5에서 활용 가능
+  - `application-secret.properties` 분리 패턴 → §9.2
+  - GitHub Actions CI/CD → 본 프로젝트 `ci.yml` + `deploy.yml` 에 적용 완료
+  - OAuth2 (Google/Kakao/Naver) → v1.5 에서 활용 가능
 
-- **MyStar Flutter 앱**:
-  - Flutter 프로젝트 구조
-  - Riverpod 패턴
-  - go_router 라우팅
+- ~~MyStar Flutter 앱~~ — Flutter 폐기 후 재활용 가치 사라짐 (Riverpod / go_router / Flutter 프로젝트 구조 모두 무관). v1.5+ 네이티브 모바일 재도입 시에만 다시 의미.
 
 - **MCP 서버 (YouTube)**:
   - Claude API 클라이언트 패턴 (RestClient 사용으로 변경됨)
@@ -878,17 +669,18 @@ Conventional Commits 형식:
   - 직접 코드 재활용은 X (컨셉 다름)
   - 단, OAuth 통합 / GitHub Actions 패턴 참고 가능
 
-### 14.2 운영 환경 정보
+### 13.2 운영 환경 정보
 
 - **VPS**: kyuhyeong.com, <VPS_IP>, Cafe24 4GB
 - **OS**: CentOS / RHEL 계열
 - **기존 서비스 도메인**: shop/game/itsm/api.kyuhyeong.com (각각 다른 Docker 컨테이너)
-- **추가 예정**: account.kyuhyeong.com (Week 6)
-- **MariaDB**: 11.x, 기존 인스턴스 활용 또는 별도 컨테이너 분리 (보안상 분리 권장)
-- **nginx**: 이미 reverse proxy 셋업됨, server block 추가만 필요
-- **SSL**: certbot 이미 셋업, 도메인 추가 시 자동 발급
+- **운영 중 (2026-05-27~)**: `account.kyuhyeong.com` — 호스트 nginx → `127.0.0.1:8085` → `account-api` 컨테이너. CD: GitHub Actions `deploy.yml` (main push → `production` 환경 → SSH `git pull` + `docker compose up -d account-api`)
+- **MariaDB (운영)**: `account-app-mariadb-prod` 컨테이너 내부 전용 (호스트 미노출). 시드 정리 절차는 [`data-cleaning.md`](../data-cleaning.md)
+- **MariaDB (로컬 dev)**: `docker compose up -d` → 호스트 포트 3305 (3306 은 mysqld 점유 회피)
+- **nginx**: 이미 reverse proxy 셋업됨, account 서브도메인 server block 추가됨
+- **SSL**: certbot 이미 셋업, account.kyuhyeong.com 인증서 발급 완료
 
-### 14.3 .gitignore 표준 (이미 적용됨, 변경 시 주의)
+### 13.3 .gitignore 표준 (이미 적용됨, 변경 시 주의)
 
 `.gitignore`는 시크릿 사전 차단을 위한 안전장치. 임의로 제거하지 말 것. 특히 다음 패턴:
 
@@ -904,7 +696,7 @@ Conventional Commits 형식:
 **/receipts/    # 실제 영수증 이미지 (실명/실금액)
 ```
 
-### 14.4 의문 사항 발생 시
+### 13.4 의문 사항 발생 시
 
 본 문서로 해결되지 않는 의문이 생기면:
 
