@@ -151,6 +151,16 @@ public class WebTransactionController {
         return "redirect:/web/transactions";
     }
 
+    /** 거래 soft-delete — 수정 화면 하단의 "거래 삭제" 폼 진입점. {@code deletedAt} 만 세팅, 행은 보존. */
+    @PostMapping("/{id}/delete")
+    public String delete(@PathVariable Long id,
+                         @AuthenticationPrincipal CustomUserDetails user,
+                         RedirectAttributes ra) {
+        transactionService.softDelete(id, user.getUserId());
+        ra.addFlashAttribute("message", "거래가 삭제되었습니다.");
+        return "redirect:/web/transactions";
+    }
+
     private static String emptyToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
     }

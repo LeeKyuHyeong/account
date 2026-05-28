@@ -62,6 +62,19 @@ public class TransactionHistoryService {
         historyRepository.save(record);
     }
 
+    /** 거래 soft-delete 이력. {@code afterJson} 은 null (삭제 후 상태가 없음). */
+    public void logDelete(Transaction deleted, Snapshot before, Long actorUserId) {
+        User actor = userRepository.getReferenceById(actorUserId);
+        TransactionHistory record = TransactionHistory.builder()
+                .transaction(deleted)
+                .household(deleted.getHousehold())
+                .changedBy(actor)
+                .changeType(ChangeType.DELETE)
+                .beforeJson(serialize(before))
+                .build();
+        historyRepository.save(record);
+    }
+
     private String serialize(Snapshot snap) {
         try {
             return objectMapper.writeValueAsString(snap);

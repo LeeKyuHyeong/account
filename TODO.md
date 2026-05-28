@@ -135,6 +135,12 @@ M4 정리:    ▓▓▓▓▓▓▓  apiChain/JWT/REST/flutter_app 제거 완료
 - [x] **H. Dark mode** (2026-05-28) — Bootstrap 5.3.3 의 native `data-bs-theme` 활용. `fragments/head.html` 의 stylesheet 앞에 inline script (`localStorage('account-theme')` 읽고 `<html>` attribute 설정 → FOUC 0). `fragments/layout.html`·`login.html`·`error.html` 의 `<html>` 에 `data-bs-theme="light"` 기본값. `app.css` 에 차트 6색 CSS variables (`:root` 라이트 + `[data-bs-theme="dark"]` override) + theme 아이콘 가시성 규칙. `trend.html`/`networth.html` 차트가 `getComputedStyle().getPropertyValue('--account-chart-*')` 로 색 읽음. `navbar.html` 우측에 🌙/☀️ 토글 버튼, `scripts.html` 에 클릭 핸들러(13줄, defensive null-check). 컨트롤러 변경 0, 새 의존성 0. 라이트 회귀 0 (기존 hex 그대로 보존)
 - [x] **🐛 Fix: `#httpServletRequest` SpEL EL1007E** (2026-05-28) — PR B(FAB 숨김) / PR D(navbar active) 에서 `${#httpServletRequest.requestURI}` 사용했으나 Thymeleaf 3.1 (Spring Boot 3.3 번들) 부터 servlet implicit object 직접 접근 불가 (`EL1007E: Property 'requestURI' cannot be found on null`). 누적된 PR들이 실제 bootRun 시점에 일괄 발견됨. 해결: `ViewContextAdvice`(@ControllerAdvice) 신설 → `@ModelAttribute("currentUri")` 가 `request.getRequestURI()` 를 모든 SSR 응답 모델에 자동 주입. `navbar.html` 의 `th:with="uri=${#httpServletRequest.requestURI}"` 와 `layout.html` 의 FAB 숨김 조건 둘 다 `${currentUri}` 로 교체. 다크모드(PR H) 와 직접 무관
 
+### 가계부 기능 보강 (post-UX)
+- [x] **거래 삭제** (2026-05-28) — 거래 수정 화면 하단 "거래 삭제" 폼 (`POST /web/transactions/{id}/delete`, native `confirm()` 가드). `TransactionService.softDelete(id, actorUserId)` 신설 — `findOne(Specification)` 격리 가드 + `Transaction.softDelete(actor)` 비즈니스 메서드(기존) + `TransactionHistoryService.logDelete`(신규, `ChangeType.DELETE` + beforeJson). flash "거래가 삭제되었습니다." 후 목록으로. `TransactionServiceTest`(신규, Mockito) 3건: happy path / 미존재·타가구 거부 / 이미 삭제 거부
+- [ ] **카테고리 관리 UI** — 시드 22개 외에 추가·수정·삭제. `Category` 비즈니스 메서드 + `WebCategoryController` 신규. v1.5 유예 항목과 정합 검토 필요
+- [ ] **거래 검색 (상점명·메모)** — `transactions/list` 필터에 keyword 필드 추가. `Specification` 에 LIKE %keyword% (merchant OR memo)
+- [ ] **반복 거래 (고정지출 자동 입력)** — 월세/통신/구독 자동 적재. `account-batch` 첫 잡 후보 + 새 도메인 (`recurring_transactions`)
+
 ### 운영 (1회성 / 상시)
 - [ ] **운영 DB 데이터 클리닝** — dev 시드(테스트가구 + 약한 비번 계정) 제거. 절차: [`data-cleaning.md`](data-cleaning.md). ⚠ **아직 미적용.**
 - [x] owner1 운영 비밀번호 변경 (dev1234! → 강한 값)

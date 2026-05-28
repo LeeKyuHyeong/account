@@ -49,6 +49,15 @@
       </div>
     </form>
 
+    <!--
+      destructive 액션 — 별도 폼 + native confirm() 로 오탭 차단. soft-delete 라 DB 행은
+      보존되지만 UI 에서는 복구 수단이 없으므로 명시적 의도 필요.
+    -->
+    <form method="post" th:action="@{/web/transactions/{id}/delete(id=${tx.id})}" class="mt-4 text-center"
+          onsubmit="return confirm('이 거래를 삭제하시겠습니까?');">
+      <button type="submit" class="btn btn-link btn-sm text-danger">거래 삭제</button>
+    </form>
+
   </th:block>
 </th:block>
 </body>
