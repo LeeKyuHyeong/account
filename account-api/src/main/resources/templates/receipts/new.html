@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <th:block th:replace="~{fragments/layout :: page('영수증 업로드', ~{::content})}">
   <th:block th:fragment="content">
@@ -10,6 +11,10 @@
     </div>
 
     <div th:if="${error}" class="toss-alert toss-alert--danger" th:text="${error}"></div>
+
+    <div th:if="${quotaExceeded}" sec:authorize="hasRole('OWNER')" class="d-grid mb-3">
+      <a th:href="@{/web/plan}" class="btn toss-cta toss-cta-primary">플랜 업그레이드</a>
+    </div>
 
     <form method="post" th:action="@{/web/receipts}" enctype="multipart/form-data" class="toss-form">
       <div class="toss-card mb-3">
