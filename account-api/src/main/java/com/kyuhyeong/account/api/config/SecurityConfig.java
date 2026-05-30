@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/error", "/webjars/**",
                                 "/css/**", "/js/**", "/favicon.ico").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
+                        .requestMatchers("/web/plan/**").hasRole("OWNER")
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")

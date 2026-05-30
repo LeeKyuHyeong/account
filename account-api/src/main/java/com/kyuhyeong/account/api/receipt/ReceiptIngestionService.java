@@ -13,6 +13,7 @@ import com.kyuhyeong.account.core.entity.Receipt;
 import com.kyuhyeong.account.core.entity.Transaction;
 import com.kyuhyeong.account.core.entity.User;
 import com.kyuhyeong.account.core.enums.CategoryType;
+import com.kyuhyeong.account.core.enums.PlanType;
 import com.kyuhyeong.account.core.enums.TransactionStatus;
 import com.kyuhyeong.account.core.repository.CategoryRepository;
 import com.kyuhyeong.account.core.repository.HouseholdRepository;
@@ -30,7 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 
@@ -57,6 +60,7 @@ import java.util.List;
 public class ReceiptIngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(ReceiptIngestionService.class);
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final ReceiptStorage receiptStorage;
     private final ReceiptAnalysisService analysisService;
@@ -72,6 +76,19 @@ public class ReceiptIngestionService {
     @Transactional
     public IngestResult ingest(MultipartFile image, Long uploaderUserId) throws IOException {
         Long householdId = HouseholdContext.get();
+
+        // 0) 구독 한도 게이팅 — 디스크 저장·Claude 호출 전 fail-fast (한도 초과 시 비용 미발생).
+        //    Household 는 비격리 엔티티지만 ctx 의 신뢰된 가구 ID 만 사용하므로 누수 없음.
+        Household household = householdRepository.getReferenceById(householdId);
+        int quota = household.getPlanType().monthlyReceiptQuota();
+        if (quota != PlanType.UNLIMITED) {
+            LocalDateTime monthStart = LocalDate.now(KST).withDayOfMonth(1).atStartOfDay();
+            long usedThisMonth = receiptRepository.countByCreatedAtGreaterThanEqual(monthStart);
+            if (usedThisMonth >= quota) {
+                throw new ReceiptQuotaExceededException(quota);
+            }
+        }
+
         byte[] bytes = image.getBytes();
         String contentType = image.getContentType();
 
@@ -80,7 +97,6 @@ public class ReceiptIngestionService {
 
         // 2) Receipt insert (분석 전 상태)
         User uploader = userRepository.getReferenceById(uploaderUserId);
-        Household household = householdRepository.getReferenceById(householdId);
         Receipt receipt = Receipt.builder()
                 .household(household)
                 .uploader(uploader)

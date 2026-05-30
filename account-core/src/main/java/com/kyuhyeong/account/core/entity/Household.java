@@ -59,4 +59,9 @@ public class Household {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /** 플랜 티어 변경 (구독 Phase 1). OWNER 가 가구 전체 티어를 선택. */
+    public void changePlan(PlanType newPlan) {
+        this.planType = newPlan;
+    }
 }

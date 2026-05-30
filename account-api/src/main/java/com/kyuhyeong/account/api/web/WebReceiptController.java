@@ -3,6 +3,7 @@ package com.kyuhyeong.account.api.web;
 import com.kyuhyeong.account.ai.model.ReceiptAnalysisResult;
 import com.kyuhyeong.account.ai.service.ReceiptAnalysisService;
 import com.kyuhyeong.account.api.receipt.ReceiptIngestionService;
+import com.kyuhyeong.account.api.receipt.ReceiptQuotaExceededException;
 import com.kyuhyeong.account.api.security.CustomUserDetails;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
 import com.kyuhyeong.account.api.transaction.TransactionService;
@@ -58,6 +59,11 @@ public class WebReceiptController {
         ReceiptIngestionService.IngestResult ingested;
         try {
             ingested = ingestionService.ingest(image, user.getUserId());
+        } catch (ReceiptQuotaExceededException e) {
+            model.addAttribute("error", "이번 달 영수증 AI 분석 " + e.getLimit()
+                    + "회를 모두 사용했어요. 플랜을 업그레이드하면 더 분석할 수 있어요.");
+            model.addAttribute("quotaExceeded", true);
+            return "receipts/new";
         } catch (ReceiptAnalysisService.AnalysisException e) {
             log.warn("Receipt analysis failed for userId={}", user.getUserId(), e);
             model.addAttribute("error", "영수증 분석에 실패했습니다. 다시 시도하거나 직접 입력해 주세요.");

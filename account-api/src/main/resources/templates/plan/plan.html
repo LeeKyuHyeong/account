@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('구독', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="mb-3">
+      <h1 class="toss-page-title">구독</h1>
+      <p class="toss-page-subtitle">우리 가구의 플랜과 이번 달 사용량</p>
+    </div>
+
+    <!-- 현재 플랜 + 이번 달 영수증 AI 사용량 -->
+    <div class="toss-card mb-3">
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span class="fw-semibold" style="color: var(--toss-text-strong); letter-spacing: -0.01em;">현재 플랜</span>
+        <span class="toss-pill" th:text="${plan.currentDisplayName}">개인</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span style="color: var(--toss-text-muted); font-size: 13px;">이번 달 영수증 AI 분석</span>
+        <span style="font-variant-numeric: tabular-nums; font-size: 13px;">
+          <span th:text="${plan.usedThisMonth}">0</span> /
+          <span th:text="${plan.currentUnlimited} ? '무제한' : ${plan.currentQuota}">10</span>회
+        </span>
+      </div>
+      <div class="toss-progress" th:unless="${plan.currentUnlimited}">
+        <div class="toss-progress__bar toss-progress__bar--positive"
+             th:with="pct=${plan.currentQuota > 0 ? (plan.usedThisMonth * 100 / plan.currentQuota) : 0}"
+             th:style="|width: ${pct > 100 ? 100 : pct}%;|"></div>
+      </div>
+    </div>
+
+    <!-- 티어 선택 -->
+    <div th:each="opt : ${plan.options}" class="toss-card mb-2">
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span class="fw-semibold" style="color: var(--toss-text-strong); letter-spacing: -0.01em;"
+              th:text="${opt.displayName}">개인</span>
+        <span th:if="${opt.current}" class="toss-pill">현재 플랜</span>
+      </div>
+      <p style="color: var(--toss-text-muted); font-size: 13px; margin-bottom: 12px;"
+         th:text="${opt.unlimited} ? '영수증 AI 무제한' : ('영수증 AI 월 ' + ${opt.quota} + '회')">영수증 AI 월 10회</p>
+      <form th:unless="${opt.current}" method="post" th:action="@{/web/plan}" class="d-grid">
+        <input type="hidden" name="plan" th:value="${opt.type}">
+        <button class="btn toss-cta toss-cta-primary" type="submit"
+                th:text="${opt.displayName} + ' 플랜으로 변경'">변경</button>
+      </form>
+    </div>
+
+    <p class="form-text mt-2">결제 연동은 준비 중이에요. 지금은 플랜을 자유롭게 변경할 수 있어요.</p>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>
