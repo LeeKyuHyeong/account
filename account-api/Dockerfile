@@ -30,10 +30,10 @@ COPY account-batch/build.gradle.kts ./account-batch/
 RUN chmod +x gradlew && \
     sh ./gradlew --no-daemon :account-api:dependencies > /dev/null 2>&1 || true
 
-# 소스 복사 후 bootJar 빌드
+# 소스 복사 후 bootJar 빌드.
+# account-batch 는 현재 src 없는 빈 모듈(build.gradle.kts 만) — 첫 잡 추가 시 COPY 라인 복원.
 COPY account-core/src ./account-core/src
 COPY account-ai/src ./account-ai/src
-COPY account-batch/src ./account-batch/src
 COPY account-api/src ./account-api/src
 
 RUN sh ./gradlew --no-daemon :account-api:bootJar -x test
