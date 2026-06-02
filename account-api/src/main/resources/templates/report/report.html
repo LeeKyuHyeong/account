@@ -62,6 +62,12 @@
       </div>
     </div>
 
+    <!-- 지출 분포 (고정+변동 카테고리 비율) — 지출이 있을 때만 -->
+    <div th:if="${report.totalExpense.signum() != 0}" class="toss-card mb-3">
+      <p class="toss-page-subtitle mb-2" style="margin-top:0;">지출 분포</p>
+      <canvas id="distChart" height="240"></canvas>
+    </div>
+
     <!-- 카테고리별 (거래 있는 것만) -->
     <h2 class="toss-section-title">카테고리별</h2>
     <div th:each="c : ${report.byCategory}" th:if="${c.total.signum() != 0}"
@@ -80,6 +86,50 @@
       <a th:href="@{/web/transactions}" class="btn toss-cta toss-cta-secondary">거래 목록</a>
       <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
     </div>
+
+    <!-- 지출 분포 도넛 — 고정+변동 카테고리 중 금액>0 만, 비율(%)을 툴팁에 표시 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const byCategory = /*[[${report.byCategory}]]*/ [];
+      const expense = byCategory.filter(function (c) {
+        return (c.type === 'FIXED' || c.type === 'VARIABLE') && c.total > 0;
+      });
+      const distEl = document.getElementById('distChart');
+      if (distEl && expense.length > 0) {
+        // 카테고리 수만큼 순환하는 팔레트 (다크/라이트 양쪽에서 무난한 톤).
+        const PALETTE = ['#3182F6', '#00C2A8', '#F2994A', '#EB5757', '#9B51E0',
+          '#2D9CDB', '#27AE60', '#F2C94C', '#BB6BD9', '#56CCF2', '#6FCF97', '#E07A5F'];
+        const total = expense.reduce(function (s, c) { return s + c.total; }, 0);
+        new Chart(distEl, {
+          type: 'doughnut',
+          data: {
+            labels: expense.map(function (c) { return c.name; }),
+            datasets: [{
+              data: expense.map(function (c) { return c.total; }),
+              backgroundColor: expense.map(function (c, i) { return PALETTE[i % PALETTE.length]; }),
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    const v = ctx.parsed;
+                    const pct = total > 0 ? (v / total * 100).toFixed(1) : '0';
+                    return ctx.label + ': ' + v.toLocaleString('ko-KR') + '원 (' + pct + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      /*]]>*/
+    </script>
 
   </th:block>
 </th:block>

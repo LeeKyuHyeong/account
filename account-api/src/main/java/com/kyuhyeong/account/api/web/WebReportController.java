@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -51,16 +52,23 @@ public class WebReportController {
         return "report/report";
     }
 
-    /** 이번 달 / 지난 달 / 올해 / 작년 프리셋 (전체 구간). active 는 현재 선택과 일치 시. */
+    /**
+     * 이번 달 / 지난 달 + 연도별 버튼(데이터가 있는 가장 이른 해 ~ 올해, 내림차순).
+     * 연도 버튼이 올해(=옛 "올해")·작년(=옛 "작년")을 포함하므로 별도 올해/작년 프리셋은 두지 않는다.
+     * active 는 현재 선택 구간과 일치 시.
+     */
     private List<Preset> buildPresets(LocalDate today, LocalDate from, LocalDate to) {
         LocalDate thisMonthStart = today.withDayOfMonth(1);
-        LocalDate thisYearStart = today.withDayOfYear(1);
-        return List.of(
-                preset("이번 달", thisMonthStart, thisMonthStart.plusMonths(1).minusDays(1), from, to),
-                preset("지난 달", thisMonthStart.minusMonths(1), thisMonthStart.minusDays(1), from, to),
-                preset("올해", thisYearStart, thisYearStart.plusYears(1).minusDays(1), from, to),
-                preset("작년", thisYearStart.minusYears(1), thisYearStart.minusDays(1), from, to)
-        );
+        List<Preset> presets = new ArrayList<>();
+        presets.add(preset("이번 달", thisMonthStart, thisMonthStart.plusMonths(1).minusDays(1), from, to));
+        presets.add(preset("지난 달", thisMonthStart.minusMonths(1), thisMonthStart.minusDays(1), from, to));
+
+        int thisYear = today.getYear();
+        int earliest = monthlySummaryService.earliestYear().orElse(thisYear);
+        for (int y = thisYear; y >= earliest; y--) {
+            presets.add(preset(y + "년", LocalDate.of(y, 1, 1), LocalDate.of(y, 12, 31), from, to));
+        }
+        return presets;
     }
 
     private Preset preset(String label, LocalDate pf, LocalDate pt, LocalDate from, LocalDate to) {
