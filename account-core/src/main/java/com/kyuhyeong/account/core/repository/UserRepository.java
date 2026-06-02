@@ -12,6 +12,9 @@ import java.util.Optional;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    /** 로그인 시 이메일로 사용자 조회 (Task 5). */
+    /** 로그인 시 이메일로 사용자 조회 (Task 5). 레거시 — 카카오 전환 후엔 로컬 시드 링크 lookup 에만 사용. */
     Optional<User> findByEmail(String email);
+
+    /** 카카오 OAuth2 로그인 시 (provider, providerUserId) 로 사용자 조회. */
+    Optional<User> findByProviderAndProviderUserId(String provider, String providerUserId);
 }
