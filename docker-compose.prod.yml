@@ -62,6 +62,14 @@ services:
       # 영수증 저장 경로 — VOLUME 마운트와 일치
       ACCOUNT_RECEIPTS_STORAGE_ROOT: /mnt/data/receipts
 
+      # 컨테이너 내부 포트는 8080 고정 (아래 8085:8080 매핑 전제).
+      # application.yml 의 server.port 기본값이 8085(로컬용)라 운영에선 8080 으로 되돌린다.
+      SERVER_PORT: "8080"
+
+      # 카카오 OAuth2 (운영 앱 kh_account_app) — .env.prod 에서 주입.
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?required}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?required}
+
       # JVM 옵션 — 컨테이너 메모리의 75% 사용 (기본 50% 보다 ↑)
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     volumes:
