@@ -1,6 +1,6 @@
 package com.kyuhyeong.account.api.web;
 
-import com.kyuhyeong.account.api.security.CustomUserDetails;
+import com.kyuhyeong.account.api.security.AccountPrincipal;
 import com.kyuhyeong.account.core.enums.PlanType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,14 +24,14 @@ public class WebPlanController {
     private final PlanService planService;
 
     @GetMapping("/web/plan")
-    public String plan(@AuthenticationPrincipal CustomUserDetails user, Model model) {
+    public String plan(@AuthenticationPrincipal AccountPrincipal user, Model model) {
         model.addAttribute("plan", planService.view(user.getActiveHouseholdId()));
         return "plan/plan";
     }
 
     @PostMapping("/web/plan")
     public String changePlan(@RequestParam PlanType plan,
-                             @AuthenticationPrincipal CustomUserDetails user,
+                             @AuthenticationPrincipal AccountPrincipal user,
                              RedirectAttributes ra) {
         planService.changePlan(user.getActiveHouseholdId(), plan);
         ra.addFlashAttribute("message", plan.displayName() + " 플랜으로 변경되었습니다.");

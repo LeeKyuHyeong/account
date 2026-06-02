@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko" data-bs-theme="light">
+<head th:replace="~{fragments/head :: head('초대코드 입력')}"></head>
+<body class="toss-page-bg">
+<main class="container" style="max-width: 420px; padding-top: 72px;">
+
+  <h1 class="toss-page-title text-center mb-1" style="font-size: 26px;">초대코드 입력하기</h1>
+  <p class="toss-page-subtitle text-center mb-4">가족이 보내준 초대코드를 입력하세요</p>
+
+  <div class="toss-card" style="padding: 24px;">
+    <form th:action="@{/web/onboarding/join}" method="post">
+      <div class="mb-2">
+        <label for="code" class="form-label fw-semibold small">초대코드</label>
+        <input type="text" id="code" name="code" class="form-control form-control-lg text-uppercase"
+               th:value="${form != null ? form.code : ''}"
+               placeholder="예: ABCD2345" required autofocus maxlength="16"
+               autocapitalize="characters" autocomplete="off">
+        <div class="text-danger small mt-1"
+             th:if="${errors != null and errors.code}" th:text="${errors.code}">오류</div>
+      </div>
+      <button type="submit" class="btn toss-cta toss-cta-primary w-100 mt-3">합류하기</button>
+    </form>
+  </div>
+
+  <p class="text-center mt-3 mb-0">
+    <a th:href="@{/web/onboarding}" class="toss-page-subtitle text-decoration-none">← 뒤로</a>
+  </p>
+</main>
+<div th:replace="~{fragments/scripts :: scripts}"></div>
+</body>
+</html>

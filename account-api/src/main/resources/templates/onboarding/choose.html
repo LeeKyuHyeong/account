@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko" data-bs-theme="light">
+<head th:replace="~{fragments/head :: head('시작하기')}"></head>
+<body class="toss-page-bg">
+<main class="container" style="max-width: 420px; padding-top: 72px;">
+
+  <h1 class="toss-page-title text-center mb-1" style="font-size: 26px;">
+    <span th:if="${nickname}" th:text="${nickname} + '님, 환영해요'">환영해요</span>
+    <span th:unless="${nickname}">환영해요</span>
+  </h1>
+  <p class="toss-page-subtitle text-center mb-4">가계부를 함께 쓸 가구를 만들거나 합류하세요</p>
+
+  <a th:href="@{/web/onboarding/create}"
+     class="toss-card d-block text-decoration-none mb-3" style="padding: 22px;">
+    <div class="fw-semibold" style="font-size: 18px;">가족 만들기</div>
+    <div class="toss-page-subtitle mb-0" style="font-size: 14px;">새 가구를 만들고 가계부를 시작해요</div>
+  </a>
+
+  <a th:href="@{/web/onboarding/join}"
+     class="toss-card d-block text-decoration-none" style="padding: 22px;">
+    <div class="fw-semibold" style="font-size: 18px;">초대코드 입력하기</div>
+    <div class="toss-page-subtitle mb-0" style="font-size: 14px;">가족이 보내준 코드로 기존 가구에 합류해요</div>
+  </a>
+
+  <form th:action="@{/logout}" method="post" class="text-center mt-4">
+    <button type="submit" class="btn btn-link toss-page-subtitle p-0">다른 계정으로 로그인</button>
+  </form>
+</main>
+<div th:replace="~{fragments/scripts :: scripts}"></div>
+</body>
+</html>

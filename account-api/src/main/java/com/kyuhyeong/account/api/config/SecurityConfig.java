@@ -1,21 +1,22 @@
 package com.kyuhyeong.account.api.config;
 
+import com.kyuhyeong.account.api.security.KakaoOAuth2UserService;
+import com.kyuhyeong.account.api.security.OnboardingAwareSuccessHandler;
 import com.kyuhyeong.account.api.security.SessionHouseholdContextFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 /**
- * Spring Security 설정 — 세션 (SSR) 단일 체인.
+ * Spring Security 설정 — 세션 (SSR) 단일 체인, 카카오 OAuth2 단독 인증.
  *
- * <p>formLogin + 세션 + CSRF (기본 활성). {@link SessionHouseholdContextFilter} 가 세션
- * principal 의 활성 가구 ID 로 {@code HouseholdContext} 를 채운다 (기존 JWT 필터의 역할 대체).
+ * <p>oauth2Login + 세션 + CSRF (기본 활성). 로그인 성공 시 {@link OnboardingAwareSuccessHandler}
+ * 가 가구 유무에 따라 /web/home 또는 /web/onboarding 으로 보낸다. {@link SessionHouseholdContextFilter}
+ * 가 세션 principal 의 활성 가구 ID 로 {@code HouseholdContext} 를 채운다.
  *
  * <p>{@link SessionHouseholdContextFilter} 는 @Component 가 아니라 @Bean 으로 등록하되,
  * Spring Boot 가 글로벌 {@code /*} 매핑으로 자동 등록하면 SecurityFilterChain 과 글로벌에서
@@ -28,23 +29,23 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain webChain(HttpSecurity http,
-                                        SessionHouseholdContextFilter sessionHouseholdContextFilter)
+                                        SessionHouseholdContextFilter sessionHouseholdContextFilter,
+                                        KakaoOAuth2UserService kakaoOAuth2UserService,
+                                        OnboardingAwareSuccessHandler successHandler)
             throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/error", "/webjars/**",
-                                "/css/**", "/js/**", "/favicon.ico").permitAll()
+                                "/css/**", "/js/**", "/favicon.ico",
+                                "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
                         .requestMatchers("/web/plan/**").hasRole("OWNER")
                         .anyRequest().authenticated())
-                .formLogin(form -> form
+                .oauth2Login(oauth -> oauth
                         .loginPage("/login")
-                        .loginProcessingUrl("/login")
-                        .usernameParameter("email")
-                        .passwordParameter("password")
-                        .defaultSuccessUrl("/web/home", true)
-                        .failureUrl("/login?error")
-                        .permitAll())
+                        .userInfoEndpoint(userInfo -> userInfo.userService(kakaoOAuth2UserService))
+                        .successHandler(successHandler)
+                        .failureUrl("/login?error"))
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
@@ -65,10 +66,5 @@ public class SecurityConfig {
         FilterRegistrationBean<SessionHouseholdContextFilter> reg = new FilterRegistrationBean<>(filter);
         reg.setEnabled(false);
         return reg;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
     }
 }

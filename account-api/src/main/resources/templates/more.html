@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<th:block th:replace="~{fragments/layout :: page('더보기', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="mb-3">
+      <h1 class="toss-page-title">더보기</h1>
+      <p class="toss-page-subtitle" sec:authentication="principal.nickname">사용자</p>
+    </div>
+
+    <div class="toss-card toss-card--flush mb-3">
+      <a th:href="@{/web/trend}" class="toss-list-row">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">추이</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
+      <a th:href="@{/web/budget}" class="toss-list-row">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">예산</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
+      <a th:href="@{/web/plan}" class="toss-list-row" sec:authorize="hasRole('OWNER')">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">구독</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
+      <a th:href="@{/web/admin}" class="toss-list-row" sec:authorize="hasRole('OWNER')">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">가구 설정</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
+    </div>
+
+    <div class="toss-card toss-card--flush mb-3">
+      <!-- 테마 토글 — 핸들러는 fragments/scripts.html (#themeToggle), 아이콘 가시성은 app.css -->
+      <button type="button" id="themeToggle" class="toss-list-row w-100 border-0"
+              style="cursor: pointer;">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">테마</span></div>
+        <span>
+          <span class="theme-icon-light" aria-hidden="true">🌙 다크</span>
+          <span class="theme-icon-dark" aria-hidden="true">☀️ 라이트</span>
+        </span>
+      </button>
+    </div>
+
+    <form th:action="@{/logout}" method="post" class="d-grid">
+      <button type="submit" class="btn toss-cta toss-cta-secondary">로그아웃</button>
+    </form>
+
+  </th:block>
+</th:block>
+</body>
+</html>

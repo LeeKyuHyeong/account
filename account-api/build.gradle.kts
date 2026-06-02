@@ -26,6 +26,8 @@ dependencies {
     // ─── Spring Boot ───
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    // 카카오 OAuth2 단독 인증 (formLogin 대체).
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     // SSR (Thymeleaf) — /web/** 라우트에서 사용. /api/** 는 기존 JSON 컨트롤러 유지.
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")

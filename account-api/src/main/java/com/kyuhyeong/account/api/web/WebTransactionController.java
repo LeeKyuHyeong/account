@@ -1,6 +1,6 @@
 package com.kyuhyeong.account.api.web;
 
-import com.kyuhyeong.account.api.security.CustomUserDetails;
+import com.kyuhyeong.account.api.security.AccountPrincipal;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * 거래 SSR 화면 — 목록 / 입력 / 수정.
  *
  * <p>비즈니스 로직은 {@link TransactionService} 를 그대로 재사용한다. 세션 principal 에서
- * userId 는 {@link CustomUserDetails#getUserId()} 로 꺼낸다 (JWT 경로의 Long principal 과 다름).
+ * userId 는 {@link AccountPrincipal#getUserId()} 로 꺼낸다 (JWT 경로의 Long principal 과 다름).
  *
  * <p>폼 검증: 입력값을 record DTO 로 @ModelAttribute 바인딩 + @Valid → BindingResult.
  * 에러 시 제출 원본값(raw Map = {@code form}) 과 필드 에러(Map = {@code errors}) 를 모델에 담아
@@ -175,7 +175,7 @@ public class WebTransactionController {
     public String create(@Valid @ModelAttribute("dto") CreateTransactionRequest dto,
                          BindingResult binding,
                          @RequestParam Map<String, String> raw,
-                         @AuthenticationPrincipal CustomUserDetails user,
+                         @AuthenticationPrincipal AccountPrincipal user,
                          Model model,
                          RedirectAttributes ra) {
         if (binding.hasErrors()) {
@@ -206,7 +206,7 @@ public class WebTransactionController {
                          @RequestParam(required = false) String paymentMethod,
                          @RequestParam(required = false) String memo,
                          @RequestParam(required = false) Boolean confirm,
-                         @AuthenticationPrincipal CustomUserDetails user,
+                         @AuthenticationPrincipal AccountPrincipal user,
                          RedirectAttributes ra) {
         boolean confirmed = Boolean.TRUE.equals(confirm);
         transactionService.edit(id, new TransactionService.EditRequest(
@@ -220,7 +220,7 @@ public class WebTransactionController {
     /** 거래 soft-delete — 수정 화면 하단의 "거래 삭제" 폼 진입점. {@code deletedAt} 만 세팅, 행은 보존. */
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id,
-                         @AuthenticationPrincipal CustomUserDetails user,
+                         @AuthenticationPrincipal AccountPrincipal user,
                          RedirectAttributes ra) {
         transactionService.softDelete(id, user.getUserId());
         ra.addFlashAttribute("message", "거래가 삭제되었습니다.");
