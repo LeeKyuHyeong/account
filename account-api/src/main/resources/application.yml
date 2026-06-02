@@ -56,10 +56,40 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  # ─── OAuth2 클라이언트 (카카오 단독 인증) ───
+  # client-id/secret 은 시크릿 — application-secret.yml 또는 환경변수(KAKAO_CLIENT_ID/SECRET)로 주입.
+  # 기본 placeholder 는 ApplicationContext 기동/CI 용 (실제 로그인 시도 시에만 카카오가 거부).
+  # redirect-uri 의 {baseUrl} 은 forward-headers-strategy=framework 로 프록시 뒤에서도 https 로 해석된다.
+  # 카카오 개발자 콘솔에 등록할 Redirect URI: {origin}/login/oauth2/code/kakao (로컬: http://localhost:8080/...).
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:placeholder-kakao-client-id}
+            client-secret: ${KAKAO_CLIENT_SECRET:placeholder-kakao-client-secret}
+            # 카카오 앱이 Client Secret "사용함" 상태 → 토큰 요청에 client_secret 동봉 (미동봉 시 KOE010/401).
+            # 앱 > 플랫폼 키 > REST API 키 > 클라이언트 시크릿. 끄려면 거기서 "사용 안 함" + 여기를 none 으로.
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            scope:
+              - profile_nickname
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 server:
-  port: 8080
+  # 로컬 기본 8085 (운영 호스트 포트와 동일하게 맞춤 — 기존 8080 portfolio 등과 충돌 회피).
+  # 운영 컨테이너는 내부적으로 8080 을 들어야 하므로(docker-compose.prod.yml 의 8085:8080 매핑)
+  # 거기선 SERVER_PORT=8080 으로 오버라이드한다.
+  port: ${SERVER_PORT:8085}
   # 리버스 프록시(nginx) 뒤에서 X-Forwarded-* 를 신뢰 — HTTPS 로 인식해 세션 쿠키 /
-  # formLogin 302 리다이렉트가 https 로 생성되도록 한다 (SSR + TLS 종단 nginx 필수).
+  # 로그인 302 리다이렉트가 https 로 생성되도록 한다 (SSR + TLS 종단 nginx 필수).
   forward-headers-strategy: framework
 
 # 영수증 이미지 저장 루트.

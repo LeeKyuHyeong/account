@@ -36,11 +36,11 @@ body {
 [data-bs-theme="dark"] .theme-icon-light { display: none; }
 [data-bs-theme="dark"] .theme-icon-dark { display: inline; }
 
-/* iOS 홈 인디케이터 안전영역 + 영수증 FAB(56) + 위아래 여백 만큼 본문 하단 공간 확보 —
-   긴 페이지 최하단 콘텐츠가 FAB 에 가려지지 않게. login/error 페이지(layout 미사용)는
-   FAB 도 없고 짧은 카드 레이아웃이라 여백이 남아도 시각적 손해 없음. */
+/* iOS 홈 인디케이터 안전영역 + 하단 탭바(약 56) 만큼 본문 하단 공간 확보 —
+   긴 페이지 최하단 콘텐츠가 탭바/FAB 에 가려지지 않게. 랜딩/온보딩 페이지(layout 미사용)는
+   탭바도 FAB 도 없고 풀스크린 레이아웃이라 여백이 남아도 시각적 손해 없음. */
 body {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
 }
 
 /* 모바일 우선 — 데스크톱에서도 폰 폭 기준으로 본문 가독성 유지 */
@@ -62,7 +62,8 @@ main.container {
 .fab-camera {
   position: fixed;
   right: 16px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  /* 하단 탭바(약 56) 바로 위에 떠 있도록 offset 상향. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
   width: 56px;
   height: 56px;
   padding: 0;
@@ -513,48 +514,76 @@ a.toss-list-row:focus {
 }
 .toss-link-danger:hover { text-decoration: underline; }
 
-/* ---------- navbar 톤 (Bootstrap navbar 위에 덧입힘) ---------- */
-.navbar.navbar-toss {
+/* ---------- 하단 탭바 (모바일 웹앱 셸) ---------- */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1030; /* FAB(1030) 동급, modal(1055) 아래 */
+  display: flex;
   background: var(--toss-surface);
-  border-bottom: 1px solid var(--toss-border);
-  box-shadow: none;
+  border-top: 1px solid var(--toss-border);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.03);
 }
-.navbar.navbar-toss .navbar-brand {
-  font-weight: 800;
-  color: var(--toss-text-strong);
-  letter-spacing: -0.02em;
-  font-size: 17px;
+/* 데스크톱: 본문(640) 폭에 맞춰 가운데 정렬 — 풀-가로 바를 피한다. */
+@media (min-width: 641px) {
+  .tabbar {
+    left: 50%;
+    right: auto;
+    width: 640px;
+    transform: translateX(-50%);
+    border-left: 1px solid var(--toss-border);
+    border-right: 1px solid var(--toss-border);
+  }
 }
-.navbar.navbar-toss .nav-link {
+.tabbar__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 0 7px;
+  text-decoration: none;
   color: var(--toss-text-muted);
+  font-size: 11px;
   font-weight: 600;
-  font-size: 14px;
-  padding-left: 12px;
-  padding-right: 12px;
-  border-radius: 8px;
+  letter-spacing: -0.01em;
+  transition: color .12s ease;
 }
-.navbar.navbar-toss .nav-link:hover,
-.navbar.navbar-toss .nav-link:focus {
-  color: var(--toss-text-strong);
-  background: var(--toss-surface-muted);
+.tabbar__item svg {
+  width: 22px;
+  height: 22px;
 }
-.navbar.navbar-toss .nav-link.active {
+.tabbar__item.active {
   color: var(--toss-primary);
-  background: rgba(49, 130, 246, 0.08);
 }
-[data-bs-theme="dark"] .navbar.navbar-toss .nav-link.active {
-  background: rgba(69, 146, 249, 0.15);
+
+/* ---------- 카카오 시작하기 버튼 (랜딩) ---------- */
+.btn.kakao-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #FEE500;
+  color: #191600;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
 }
-.navbar.navbar-toss .btn-outline-secondary {
-  border-color: var(--toss-border);
-  color: var(--toss-text-muted);
-  border-radius: 8px;
+.btn.kakao-cta:hover,
+.btn.kakao-cta:focus {
+  background: #F2DA00;
+  color: #191600;
 }
-.navbar.navbar-toss .btn-outline-secondary:hover,
-.navbar.navbar-toss .btn-outline-secondary:focus {
-  background: var(--toss-surface-muted);
-  color: var(--toss-text-strong);
-  border-color: var(--toss-border);
+.kakao-cta__icon {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ---------- 작은 상태 뱃지 추가 변형 ---------- */

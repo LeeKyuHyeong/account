@@ -4,7 +4,7 @@ import com.kyuhyeong.account.ai.model.ReceiptAnalysisResult;
 import com.kyuhyeong.account.ai.service.ReceiptAnalysisService;
 import com.kyuhyeong.account.api.receipt.ReceiptIngestionService;
 import com.kyuhyeong.account.api.receipt.ReceiptQuotaExceededException;
-import com.kyuhyeong.account.api.security.CustomUserDetails;
+import com.kyuhyeong.account.api.security.AccountPrincipal;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.TransactionResponse;
 import com.kyuhyeong.account.api.transaction.TransactionService;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class WebReceiptController {
 
     @PostMapping
     public String upload(@RequestParam(value = "image", required = false) MultipartFile image,
-                         @AuthenticationPrincipal CustomUserDetails user,
+                         @AuthenticationPrincipal AccountPrincipal user,
                          Model model) throws IOException {
         String validationError = validateImage(image);
         if (validationError != null) {
