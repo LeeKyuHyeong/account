@@ -20,7 +20,7 @@
         </form>
       </div>
       <p style="font-size: 12px; color: var(--toss-text-muted);" class="mb-2">
-        새 멤버가 "초대코드 입력하기" 에서 이 코드를 입력하면 우리 가구에 합류해요.
+        새 멤버가 "초대코드 입력하기" 에서 이 코드를 입력하면 우리 가구에 합류해요. (코드를 탭하면 복사돼요)
       </p>
       <div th:if="${#lists.isEmpty(inviteCodes)}"
            style="font-size: 13px; color: var(--toss-text-muted);">
@@ -28,7 +28,9 @@
       </div>
       <ul class="list-unstyled mb-0" th:unless="${#lists.isEmpty(inviteCodes)}">
         <li th:each="ic : ${inviteCodes}" class="d-flex justify-content-between align-items-center py-1">
-          <code style="font-size: 16px; letter-spacing: 0.08em;" th:text="${ic.code}">ABCD2345</code>
+          <code class="invite-code" role="button" tabindex="0" title="탭하여 복사"
+                style="font-size: 16px; letter-spacing: 0.08em; cursor: pointer;"
+                th:attr="data-code=${ic.code}" th:text="${ic.code}">ABCD2345</code>
           <span style="font-size: 12px; color: var(--toss-text-muted);"
                 th:text="${#temporals.format(ic.createdAt, 'yyyy-MM-dd')}">2026-06-02</span>
         </li>
@@ -56,6 +58,30 @@
     <div class="d-grid gap-2 mt-3">
       <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
     </div>
+
+    <!-- 초대코드 탭하여 복사 — Clipboard API(https/localhost). 복사 후 잠깐 "복사됨 ✓" 표시. -->
+    <script th:inline="none">
+      document.querySelectorAll('.invite-code').forEach(function (el) {
+        function showCopied() {
+          var orig = el.getAttribute('data-code');
+          el.textContent = '복사됨 ✓';
+          setTimeout(function () { el.textContent = orig; }, 1200);
+        }
+        el.addEventListener('click', function () {
+          var code = el.getAttribute('data-code');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(showCopied).catch(function () {});
+          } else {
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            try { document.execCommand('copy'); showCopied(); } catch (e) {}
+          }
+        });
+      });
+    </script>
 
   </th:block>
 </th:block>
