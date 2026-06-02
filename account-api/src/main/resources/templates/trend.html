@@ -42,7 +42,7 @@
         options: {
           responsive: true,
           plugins: { legend: { position: 'bottom' } },
-          scales: { y: { ticks: { callback: function (v) { return (v / 10000) + '만'; } } } }
+          scales: { y: { beginAtZero: true, ticks: { precision: 0, callback: function (v) { return (v / 10000).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '만'; } } } }
         }
       });
       /*]]>*/
