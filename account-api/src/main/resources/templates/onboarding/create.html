@@ -12,10 +12,10 @@
       <div class="mb-2">
         <label for="name" class="form-label fw-semibold small">가구 이름</label>
         <input type="text" id="name" name="name" class="form-control form-control-lg"
-               th:value="${form != null ? form.name : ''}"
+               th:value="${form['name']}"
                placeholder="예: 우리집" required autofocus maxlength="100">
         <div class="text-danger small mt-1"
-             th:if="${errors != null and errors.name}" th:text="${errors.name}">오류</div>
+             th:if="${errors['name']}" th:text="${errors['name']}">오류</div>
       </div>
       <button type="submit" class="btn toss-cta toss-cta-primary w-100 mt-3">만들기</button>
     </form>
