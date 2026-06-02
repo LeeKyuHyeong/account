@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 한 달치 거래 집계.
@@ -75,6 +76,16 @@ public class MonthlySummaryService {
             result.add(get(ym));
         }
         return result;
+    }
+
+    /**
+     * 데이터가 있는 가장 이른 거래 연도 — 결산 "연도별" 프리셋이 (이 해 ~ 올해) 버튼을 만들 때 쓴다.
+     * 거래가 하나도 없으면 empty (호출부에서 올해로 폴백). 가구 격리 자동 적용.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Integer> earliestYear() {
+        return transactionRepository.findFirstByDeletedAtIsNullOrderByOccurredAtAsc()
+                .map(t -> t.getOccurredAt().getYear());
     }
 
     @Transactional(readOnly = true)

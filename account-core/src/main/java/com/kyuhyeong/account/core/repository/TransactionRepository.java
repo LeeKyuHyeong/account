@@ -4,6 +4,8 @@ import com.kyuhyeong.account.core.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.Optional;
+
 /**
  * 거래 Repository (가구 격리 대상).
  *
@@ -20,4 +22,11 @@ public interface TransactionRepository
      * 가구 격리는 Hibernate {@code householdFilter} 가 자동 적용.
      */
     long countByCategoryId(Long categoryId);
+
+    /**
+     * 가장 이른 비-소프트삭제 거래 한 건 — 결산 화면의 "연도별" 프리셋 범위(가장 이른 해 ~ 올해)를
+     * 정하는 데 쓴다. 가구 격리는 Hibernate {@code householdFilter} 가 자동 적용 (호출이
+     * {@code @Transactional} 경계 안일 때).
+     */
+    Optional<Transaction> findFirstByDeletedAtIsNullOrderByOccurredAtAsc();
 }
