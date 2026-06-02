@@ -82,7 +82,10 @@ jobs:
             cd ${{ vars.DEPLOY_PATH }}
             git fetch --prune
             git checkout main
-            git pull --ff-only
+            # 서버를 origin/main 과 정확히 일치시킨다 (서버에서 추적 파일을 직접 수정해 생긴
+            # 드리프트로 git pull --ff-only 이 막히던 문제 방지). .env.prod 등 추적 안 되는
+            # 파일은 reset 대상이 아니라 보존된다. ⇒ 모든 운영 설정 변경은 git 으로만.
+            git reset --hard origin/main
             docker compose -f docker-compose.prod.yml --env-file .env.prod build account-api
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d account-api
             docker image prune -f
