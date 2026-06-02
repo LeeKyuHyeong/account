@@ -29,6 +29,11 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-time-zone=+09:00
+    # 외부 DB 접속용 호스트 노출 (운영 관리/조회). 호스트 3311 → 컨테이너 3306.
+    # ⚠ 모든 인터페이스(0.0.0.0)에 열리므로 VPS 방화벽에서 3311 을 관리자 IP 로 제한할 것
+    #    (미제한 시 운영 DB 가 인터넷에 직접 노출됨).
+    ports:
+      - "3311:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
