@@ -12,11 +12,11 @@
       <div class="mb-2">
         <label for="code" class="form-label fw-semibold small">초대코드</label>
         <input type="text" id="code" name="code" class="form-control form-control-lg text-uppercase"
-               th:value="${form != null ? form.code : ''}"
+               th:value="${form['code']}"
                placeholder="예: ABCD2345" required autofocus maxlength="16"
                autocapitalize="characters" autocomplete="off">
         <div class="text-danger small mt-1"
-             th:if="${errors != null and errors.code}" th:text="${errors.code}">오류</div>
+             th:if="${errors['code']}" th:text="${errors['code']}">오류</div>
       </div>
       <button type="submit" class="btn toss-cta toss-cta-primary w-100 mt-3">합류하기</button>
     </form>
