@@ -29,4 +29,10 @@ public interface TransactionRepository
      * {@code @Transactional} 경계 안일 때).
      */
     Optional<Transaction> findFirstByDeletedAtIsNullOrderByOccurredAtAsc();
+
+    /**
+     * 상태별 활성 거래 수 — 일일 푸시 다이제스트의 "확정 대기 DRAFT N건" 카운트용.
+     * 가구 격리는 Hibernate {@code householdFilter} 자동 적용.
+     */
+    long countByStatusAndDeletedAtIsNull(com.kyuhyeong.account.core.enums.TransactionStatus status);
 }

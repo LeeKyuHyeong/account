@@ -30,6 +30,7 @@
           <button type="button" id="push-enable" class="btn toss-cta toss-cta-primary d-none">알림 켜기</button>
           <button type="button" id="push-disable" class="btn toss-cta toss-cta-secondary d-none">알림 끄기</button>
           <button type="button" id="push-test" class="btn toss-cta toss-cta-secondary d-none">테스트 알림 보내기</button>
+          <button type="button" id="push-digest" class="btn toss-cta toss-cta-secondary d-none">오늘 요약 지금 받기</button>
         </div>
       </div>
     </th:block>
@@ -52,6 +53,7 @@
         var enableBtn = document.getElementById('push-enable');
         var disableBtn = document.getElementById('push-disable');
         var testBtn = document.getElementById('push-test');
+        var digestBtn = document.getElementById('push-digest');
 
         function setStatus(text, on) {
           statusEl.textContent = text;
@@ -89,6 +91,7 @@
           show(enableBtn, !sub);
           show(disableBtn, !!sub);
           show(testBtn, !!sub);
+          show(digestBtn, !!sub);
         }
 
         enableBtn.addEventListener('click', async function () {
@@ -124,6 +127,13 @@
               ? '발송됨 (' + data.sent + '기기) — 알림을 확인하세요'
               : '발송 실패 — 구독 상태를 확인하세요';
           setTimeout(function () { testBtn.textContent = '테스트 알림 보내기'; }, 3000);
+        });
+
+        // 매일 21시 자동 발송되는 일일 요약(오늘 분석/확정 대기)을 즉시 받아보는 검증용
+        digestBtn.addEventListener('click', async function () {
+          await post('/web/push/digest-now');
+          digestBtn.textContent = '요청됨 — 보낼 내용이 있으면 알림이 와요';
+          setTimeout(function () { digestBtn.textContent = '오늘 요약 지금 받기'; }, 3000);
         });
 
         refresh();

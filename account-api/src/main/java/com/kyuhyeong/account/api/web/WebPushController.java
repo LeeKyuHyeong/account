@@ -1,5 +1,6 @@
 package com.kyuhyeong.account.api.web;
 
+import com.kyuhyeong.account.api.push.PushDigestService;
 import com.kyuhyeong.account.api.push.PushSendService;
 import com.kyuhyeong.account.api.push.PushSubscriptionService;
 import com.kyuhyeong.account.api.security.AccountPrincipal;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Map;
 
 /**
@@ -31,8 +34,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class WebPushController {
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final PushSubscriptionService subscriptionService;
     private final PushSendService sendService;
+    private final PushDigestService digestService;
 
     @Value("${account.push.vapid.public-key:}")
     private String vapidPublicKey;
@@ -78,5 +84,16 @@ public class WebPushController {
         int sent = sendService.sendToUser(user.getUserId(),
                 "가계부 알림 테스트", "이 알림이 보이면 푸시 설정 완료!", "/web/home");
         return Map.of("ok", true, "sent", sent);
+    }
+
+    /**
+     * 현재 가구의 일일 다이제스트 즉시 발송 — 21시 스케줄을 기다리지 않는 수동 검증 경로
+     * ({@code /web/recurring/run-now} 와 같은 성격). 보낼 내용 없으면 발송 자체가 없다.
+     */
+    @PostMapping("/digest-now")
+    @ResponseBody
+    public Map<String, Object> sendDigestNow() {
+        digestService.sendDailyDigestForCurrentHousehold(LocalDate.now(KST));
+        return Map.of("ok", true);
     }
 }
