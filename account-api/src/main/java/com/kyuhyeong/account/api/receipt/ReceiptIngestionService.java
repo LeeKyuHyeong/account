@@ -6,6 +6,7 @@ import com.kyuhyeong.account.ai.model.MerchantHistoryContext;
 import com.kyuhyeong.account.ai.model.ReceiptAnalysisResult;
 import com.kyuhyeong.account.ai.service.MerchantHistoryProvider;
 import com.kyuhyeong.account.ai.service.ReceiptAnalysisService;
+import com.kyuhyeong.account.api.push.PushSendService;
 import com.kyuhyeong.account.api.transaction.TransactionHistoryService;
 import com.kyuhyeong.account.core.entity.Category;
 import com.kyuhyeong.account.core.entity.Household;
@@ -73,6 +74,7 @@ public class ReceiptIngestionService {
     private final HouseholdRepository householdRepository;
     private final ObjectMapper objectMapper;
     private final TransactionHistoryService historyService;
+    private final PushSendService pushSendService;
 
     @Transactional
     public IngestResult ingest(MultipartFile image, Long uploaderUserId) throws IOException {
@@ -82,9 +84,10 @@ public class ReceiptIngestionService {
         //    Household 는 비격리 엔티티지만 ctx 의 신뢰된 가구 ID 만 사용하므로 누수 없음.
         Household household = householdRepository.getReferenceById(householdId);
         int quota = household.getPlanType().monthlyReceiptQuota();
+        long usedThisMonth = 0;
         if (quota != PlanType.UNLIMITED) {
             LocalDateTime monthStart = LocalDate.now(KST).withDayOfMonth(1).atStartOfDay();
-            long usedThisMonth = receiptRepository.countByCreatedAtGreaterThanEqual(monthStart);
+            usedThisMonth = receiptRepository.countByCreatedAtGreaterThanEqual(monthStart);
             if (usedThisMonth >= quota) {
                 throw new ReceiptQuotaExceededException(quota);
             }
@@ -139,7 +142,28 @@ public class ReceiptIngestionService {
         log.info("Receipt ingested: receiptId={}, transactionId={}, merchant='{}', total={}, confidence={}",
                 receipt.getId(), tx.getId(), result.merchant(), result.total(), result.confidence());
 
+        // 8) AI 한도 알림 — 이번 건 포함 사용량이 "2회 남음" / "소진" 에 정확히 도달한 순간만.
+        //    월 카운트는 단조 증가라 각 임계는 한 달에 최대 1회 발화 — 별도 중복 방지 상태 불필요.
+        if (quota != PlanType.UNLIMITED) {
+            notifyQuotaIfThreshold(householdId, quota, usedThisMonth + 1);
+        }
+
         return new IngestResult(receipt.getId(), tx.getId(), result);
+    }
+
+    /** 가구 전원에게 한도 근접/소진 푸시 (발송 실패는 PushSendService 가 흡수 — 인제스천을 막지 않음). */
+    private void notifyQuotaIfThreshold(Long householdId, int quota, long usedAfterThis) {
+        if (usedAfterThis == quota) {
+            pushSendService.sendToHouseholdExcept(householdId, null,
+                    "영수증 AI 한도 소진",
+                    "이번 달 분석 " + quota + "회를 모두 사용했어요. 다음 달 1일에 초기화돼요.",
+                    "/web/home");
+        } else if (quota - usedAfterThis == 2) {
+            pushSendService.sendToHouseholdExcept(householdId, null,
+                    "영수증 AI 한도 임박",
+                    "이번 달 분석 " + usedAfterThis + "/" + quota + "회 사용 — 2회 남았어요.",
+                    "/web/home");
+        }
     }
 
     /**

@@ -31,6 +31,7 @@
           <button type="button" id="push-disable" class="btn toss-cta toss-cta-secondary d-none">알림 끄기</button>
           <button type="button" id="push-test" class="btn toss-cta toss-cta-secondary d-none">테스트 알림 보내기</button>
           <button type="button" id="push-digest" class="btn toss-cta toss-cta-secondary d-none">오늘 요약 지금 받기</button>
+          <button type="button" id="push-closing" class="btn toss-cta toss-cta-secondary d-none">지난달 결산 지금 받기</button>
         </div>
       </div>
     </th:block>
@@ -54,6 +55,7 @@
         var disableBtn = document.getElementById('push-disable');
         var testBtn = document.getElementById('push-test');
         var digestBtn = document.getElementById('push-digest');
+        var closingBtn = document.getElementById('push-closing');
 
         function setStatus(text, on) {
           statusEl.textContent = text;
@@ -92,6 +94,7 @@
           show(disableBtn, !!sub);
           show(testBtn, !!sub);
           show(digestBtn, !!sub);
+          show(closingBtn, !!sub);
         }
 
         enableBtn.addEventListener('click', async function () {
@@ -134,6 +137,13 @@
           await post('/web/push/digest-now');
           digestBtn.textContent = '요청됨 — 보낼 내용이 있으면 알림이 와요';
           setTimeout(function () { digestBtn.textContent = '오늘 요약 지금 받기'; }, 3000);
+        });
+
+        // 매월 1일 9시 자동 발송되는 지난달 결산을 즉시 받아보는 검증용
+        closingBtn.addEventListener('click', async function () {
+          await post('/web/push/closing-now');
+          closingBtn.textContent = '요청됨 — 지난달 거래가 있으면 알림이 와요';
+          setTimeout(function () { closingBtn.textContent = '지난달 결산 지금 받기'; }, 3000);
         });
 
         refresh();

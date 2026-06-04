@@ -1,6 +1,8 @@
 package com.kyuhyeong.account.api.push;
 
 import com.kyuhyeong.account.api.receipt.ReceiptAccuracyService;
+import com.kyuhyeong.account.api.summary.MonthlySummaryDtos.MonthlySummaryResponse;
+import com.kyuhyeong.account.api.summary.MonthlySummaryService;
 import com.kyuhyeong.account.core.entity.Household;
 import com.kyuhyeong.account.core.enums.TransactionStatus;
 import com.kyuhyeong.account.core.repository.HouseholdRepository;
@@ -12,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -40,6 +44,7 @@ public class PushDigestService {
 
     private final HouseholdRepository householdRepository;
     private final ReceiptAccuracyService receiptAccuracyService;
+    private final MonthlySummaryService monthlySummaryService;
     private final TransactionRepository transactionRepository;
     private final PushSendService pushSendService;
 
@@ -72,6 +77,57 @@ public class PushDigestService {
     @Transactional
     public void sendDailyDigestForCurrentHousehold(LocalDate today) {
         digest(HouseholdContext.get(), today);
+    }
+
+    // ─── 월간 결산 ────────────────────────────────────────────────
+
+    /** 스케줄러용 — 전 가구에 지난달 결산 푸시. 푸시 비활성이면 즉시 반환. */
+    public void sendMonthlyClosingAcrossHouseholds(YearMonth month) {
+        if (!pushSendService.isEnabled()) {
+            return;
+        }
+        for (Household household : householdRepository.findAll()) {
+            try {
+                sendMonthlyClosingForHousehold(household.getId(), month);
+            } catch (Exception e) {
+                log.warn("Failed monthly closing push for household {}", household.getId(), e);
+            }
+        }
+    }
+
+    /** 단일 가구 월 결산 — 컨텍스트 명시 설정/해제 (스케줄러 경로). */
+    @Transactional
+    public void sendMonthlyClosingForHousehold(Long householdId, YearMonth month) {
+        HouseholdContext.set(householdId);
+        try {
+            monthlyClosing(householdId, month);
+        } finally {
+            HouseholdContext.clear();
+        }
+    }
+
+    /** 웹 수동 실행용 — 컨텍스트는 web filter 가 이미 채운 상태. */
+    @Transactional
+    public void sendMonthlyClosingForCurrentHousehold(YearMonth month) {
+        monthlyClosing(HouseholdContext.get(), month);
+    }
+
+    /** "5월 결산: 수입 X · 지출 Y · 잉여 ±Z" — 그 달 거래가 전혀 없는 가구는 무발송. */
+    private void monthlyClosing(Long householdId, YearMonth month) {
+        MonthlySummaryResponse summary = monthlySummaryService.get(month);
+        if (summary.income().signum() == 0 && summary.totalExpense().signum() == 0) {
+            return;
+        }
+        String body = "수입 " + won(summary.income())
+                + " · 지출 " + won(summary.totalExpense())
+                + " · 잉여 " + (summary.surplus().signum() >= 0 ? "+" : "") + won(summary.surplus());
+        String url = "/web/report?from=" + month.atDay(1) + "&to=" + month.atEndOfMonth();
+        pushSendService.sendToHouseholdExcept(householdId, null,
+                month.getMonthValue() + "월 결산", body, url);
+    }
+
+    private static String won(BigDecimal amount) {
+        return String.format("%,d원", amount.longValue());
     }
 
     private void digest(Long householdId, LocalDate today) {

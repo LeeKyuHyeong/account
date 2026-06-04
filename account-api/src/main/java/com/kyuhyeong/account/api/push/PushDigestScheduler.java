@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 
 /**
@@ -28,5 +29,11 @@ public class PushDigestScheduler {
     @Scheduled(cron = "0 0 21 * * *", zone = "Asia/Seoul")
     public void sendDailyDigest() {
         digestService.sendDailyDigestAcrossHouseholds(LocalDate.now(KST));
+    }
+
+    /** 매월 1일 아침 9시 — 지난달 결산 요약 ("5월 결산: 수입 · 지출 · 잉여"). */
+    @Scheduled(cron = "0 0 9 1 * *", zone = "Asia/Seoul")
+    public void sendMonthlyClosing() {
+        digestService.sendMonthlyClosingAcrossHouseholds(YearMonth.now(KST).minusMonths(1));
     }
 }
