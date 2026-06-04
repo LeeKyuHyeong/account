@@ -19,7 +19,7 @@
 > ⚠ iOS 는 "홈 화면에 추가"(PWA 설치) 한 사용자만 수신 (iOS 정책, 우회 불가). Android Chrome 은 브라우저만으로 OK.
 > 의존성: `nl.martijndwars:web-push` 1개 + VAPID 키 쌍(시크릿 — env/`application-secret.yml`).
 
-- [ ] **0단계 — 푸시 기반**: Service Worker(sw.js) 등록 + 알림 권한 + 구독 저장 (`push_subscriptions` 테이블 신설, user_id 연결 — 브라우저당 1행) + `PushSendService` (410 Gone 구독 자동 삭제) + 테스트 발송 버튼. 더보기에 "알림 설정" (v1 은 전체 on/off 만)
+- [x] ~~**0단계 — 푸시 기반**~~ → **2026-06-04 구현** (로컬 테스트 알림 수신 검증): V8 `push_subscriptions` + `PushSubscription`(비격리 — User 군, user_id 코드 가드) + `PushSubscriptionService`(endpoint upsert/재바인딩) + `PushSendService`(VAPID, 404/410 자동 정리, 키 미설정 시 비활성) + `/web/push` 알림 설정(켜기/끄기/테스트) + `static/sw.js`. 운영 `.env.prod` 에 VAPID 키 입력 완료 — 다음 배포에서 반영
 - [ ] **1단계 — 이벤트 알림 (상태 관리 불필요, 가장 단순)**: ① 배우자 거래 알림 (CONFIRMED 시, 입력자 본인 제외 — §3.1 [7] 의 원래 계획) ② 새 멤버 합류 알림 (`joinByInviteCode` 성공 시 — 카카오톡 초대와 연결)
 - [ ] **2단계 — 스케줄 알림**: ③ 일일 영수증 분석 요약 (`ReceiptAccuracyService.summarize()` 재사용 — "자동 요약" 논의의 C안 완성) ④ DRAFT 미확정 리마인더 (있을 때만). ⚠ 스케줄 잡이 2개 이상이 되는 시점 — CLAUDE.md 규칙대로 반복거래 스케줄러와 함께 `account-batch` 로 이전 검토
 - [ ] **3단계 — 상태 기반 알림 (손이 가장 큼)**: ⑤ 예산 임박/초과 (80%/100% 각 1회, 중복 발송 방지 상태 필요)
