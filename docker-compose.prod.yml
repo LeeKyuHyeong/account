@@ -77,6 +77,10 @@ services:
       # 카카오톡 초대 공유용 JavaScript 키 (선택 — 비우면 공유 버튼 숨김)
       KAKAO_JS_KEY: ${KAKAO_JS_KEY:-}
 
+      # Web Push VAPID 키 (선택 — 비우면 푸시 알림 비활성)
+      ACCOUNT_PUSH_VAPID_PUBLIC_KEY: ${ACCOUNT_PUSH_VAPID_PUBLIC_KEY:-}
+      ACCOUNT_PUSH_VAPID_PRIVATE_KEY: ${ACCOUNT_PUSH_VAPID_PRIVATE_KEY:-}
+
       # JVM 옵션 — 컨테이너 메모리의 75% 사용 (기본 50% 보다 ↑)
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     volumes:
