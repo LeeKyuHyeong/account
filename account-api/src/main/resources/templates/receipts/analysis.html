@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('영수증 분석 이력', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="mb-3">
+      <h1 class="toss-page-title">영수증 분석 이력</h1>
+      <p class="toss-page-subtitle"
+         th:text="'최근 ' + ${rows.size()} + '건 중 ' + ${changedCount} + '건 수정됨'">최근 0건 중 0건 수정됨</p>
+    </div>
+
+    <div th:if="${rows.isEmpty()}" class="toss-empty">
+      영수증으로 분석한 거래가 없습니다.
+    </div>
+
+    <!-- 요약 — 같은 행 리스트에서 on-the-fly 파생 (최근 30건 기준) -->
+    <div class="toss-card mb-3" th:unless="${rows.isEmpty()}">
+      <div class="fw-semibold mb-2">필드별 수정 횟수</div>
+      <p class="toss-page-subtitle mb-2" style="font-size: 13px;">
+        숫자가 큰 필드가 프롬프트 보강 대상입니다 (최근 <span th:text="${rows.size()}">0</span>건 기준)
+      </p>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="toss-badge" th:classappend="${summary.fields.merchant > 0} ? 'toss-badge--warning' : ''"
+              th:text="'가맹점 ' + ${summary.fields.merchant}">가맹점 0</span>
+        <span class="toss-badge" th:classappend="${summary.fields.category > 0} ? 'toss-badge--warning' : ''"
+              th:text="'카테고리 ' + ${summary.fields.category}">카테고리 0</span>
+        <span class="toss-badge" th:classappend="${summary.fields.amount > 0} ? 'toss-badge--warning' : ''"
+              th:text="'금액 ' + ${summary.fields.amount}">금액 0</span>
+        <span class="toss-badge" th:classappend="${summary.fields.paymentMethod > 0} ? 'toss-badge--warning' : ''"
+              th:text="'결제수단 ' + ${summary.fields.paymentMethod}">결제수단 0</span>
+        <span class="toss-badge" th:classappend="${summary.fields.date > 0} ? 'toss-badge--warning' : ''"
+              th:text="'일자 ' + ${summary.fields.date}">일자 0</span>
+      </div>
+
+      <div class="fw-semibold mb-2">일별 추이</div>
+      <table class="table table-sm small mb-0">
+        <thead>
+        <tr>
+          <th scope="col">일자</th>
+          <th scope="col" class="text-end">분석</th>
+          <th scope="col" class="text-end">수정</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="d : ${summary.daily}">
+          <td th:text="${#temporals.format(d.date, 'MM-dd (E)')}">06-04</td>
+          <td class="text-end" th:text="${d.total} + '건'">0건</td>
+          <td class="text-end" th:classappend="${d.changed > 0} ? 'text-warning fw-semibold' : ''"
+              th:text="${d.changed} + '건'">0건</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toss-card mb-3" th:each="r : ${rows}">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <a th:href="@{/web/transactions/{id}(id=${r.transactionId})}"
+             class="fw-semibold text-decoration-none"
+             th:text="${r.saved.merchant} ?: ('거래 #' + ${r.transactionId})">가맹점</a>
+          <div class="toss-page-subtitle mb-0" style="font-size: 13px;"
+               th:text="${#temporals.format(r.uploadedAt, 'yyyy-MM-dd HH:mm')} + ' 업로드'">업로드 일시</div>
+        </div>
+        <div class="text-end">
+          <span th:if="${r.status.name() == 'DRAFT'}" class="toss-badge toss-badge--warning">확정 전</span>
+          <div class="toss-page-subtitle mb-0" style="font-size: 13px;"
+               th:text="'신뢰도 ' + ${r.confidencePct} + '%'">신뢰도</div>
+        </div>
+      </div>
+
+      <!-- 수정된 필드는 table-warning 으로 하이라이트 -->
+      <table class="table table-sm small align-middle mb-0">
+        <thead>
+        <tr>
+          <th scope="col" style="width: 22%;"></th>
+          <th scope="col" style="width: 39%;">AI 분석</th>
+          <th scope="col" style="width: 39%;">저장값</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:classappend="${r.diff.merchant} ? 'table-warning' : ''">
+          <th scope="row" class="fw-normal text-secondary">가맹점</th>
+          <td th:text="${r.ai.merchant} ?: '-'">-</td>
+          <td th:text="${r.saved.merchant} ?: '-'">-</td>
+        </tr>
+        <tr th:classappend="${r.diff.category} ? 'table-warning' : ''">
+          <th scope="row" class="fw-normal text-secondary">카테고리</th>
+          <td th:text="${r.ai.category} ?: '-'">-</td>
+          <td th:text="${r.saved.category} ?: '-'">-</td>
+        </tr>
+        <tr th:classappend="${r.diff.amount} ? 'table-warning' : ''">
+          <th scope="row" class="fw-normal text-secondary">금액</th>
+          <td th:text="${r.ai.amount != null} ? ${#numbers.formatInteger(r.ai.amount, 0, 'COMMA')} + '원' : '-'">-</td>
+          <td th:text="${#numbers.formatInteger(r.saved.amount, 0, 'COMMA')} + '원'">0원</td>
+        </tr>
+        <tr th:classappend="${r.diff.paymentMethod} ? 'table-warning' : ''">
+          <th scope="row" class="fw-normal text-secondary">결제수단</th>
+          <td th:text="${r.ai.paymentMethod} ?: '-'">-</td>
+          <td th:text="${r.saved.paymentMethod} ?: '-'">-</td>
+        </tr>
+        <tr th:classappend="${r.diff.date} ? 'table-warning' : ''">
+          <th scope="row" class="fw-normal text-secondary">일자</th>
+          <td th:text="${r.ai.date != null} ? ${#temporals.format(r.ai.date, 'yyyy-MM-dd')} : '-'">-</td>
+          <td th:text="${#temporals.format(r.saved.date, 'yyyy-MM-dd')}">-</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>
