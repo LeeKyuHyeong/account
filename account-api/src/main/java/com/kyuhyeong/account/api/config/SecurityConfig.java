@@ -39,6 +39,7 @@ public class SecurityConfig {
                         // 수행하므로 익명 허용 (로그인 리다이렉트 HTML 이 오면 SW 가 깨진다).
                         .requestMatchers("/login", "/error", "/webjars/**",
                                 "/css/**", "/js/**", "/favicon.ico", "/sw.js",
+                                "/manifest.webmanifest", "/icons/**",
                                 "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
                         .requestMatchers("/web/plan/**").hasRole("OWNER")
