@@ -30,7 +30,8 @@ public class ClaudeConfig {
     @Bean
     public RestClient claudeRestClient(ClaudeProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) properties.timeout().toMillis());
+        // 연결 수립은 짧게(기본 5초) — 네트워크 단절 시 read 타임아웃까지 매달리지 않게 분리.
+        factory.setConnectTimeout((int) properties.connectTimeout().toMillis());
         factory.setReadTimeout((int) properties.timeout().toMillis());
 
         return RestClient.builder()

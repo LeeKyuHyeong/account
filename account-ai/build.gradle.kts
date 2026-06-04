@@ -20,6 +20,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
+    // 영수증 이미지 다운스케일 (Claude 전송 전 1568px 리사이즈 + EXIF 회전 보정)
+    implementation("net.coobird:thumbnailator:0.4.20")
+
     // ─── 테스트 ───
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.wiremock:wiremock-standalone:3.10.0")

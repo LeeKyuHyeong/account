@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
  * 다음 단계를 본 서비스가 일괄 처리한다:
  *
  * <ol>
+ *     <li>이미지 다운스케일 ({@link ImageDownscaler} — API 5MB 한도 + 토큰 비용 대응)</li>
  *     <li>이미지 base64 인코딩</li>
  *     <li>프롬프트 조립 (가구별 가맹점 학습 이력 주입)</li>
  *     <li>Claude Vision API 호출</li>
@@ -29,9 +30,9 @@ import java.util.regex.Pattern;
  *     <li>JSON → {@link ReceiptAnalysisResult} 역직렬화</li>
  * </ol>
  *
- * <p>이미지 자체의 압축·리사이즈는 본 서비스 책임이 아님 — Flutter 클라이언트에서
- * 업로드 전 1280px 이하로 압축하는 것을 표준으로 한다. 서버 측 추가 압축은 별도
- * 이미지 처리 서비스에서 수행.
+ * <p>다운스케일은 Claude 전송용 사본에만 적용 — 디스크에 보존되는 원본은 호출자
+ * (ReceiptIngestionService → ReceiptStorage) 가 변경 없이 저장한다.
+ * (과거엔 Flutter 클라이언트 압축에 의존했으나 M4 SSR 단일화로 서버 책임이 됨.)
  */
 @Service
 public class ReceiptAnalysisService {
@@ -76,8 +77,9 @@ public class ReceiptAnalysisService {
             throw new AnalysisException("Empty image bytes");
         }
 
-        // 1) 이미지 base64 인코딩
-        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        // 1) 다운스케일 (필요 시에만 — 실패해도 원본으로 진행) + base64 인코딩
+        ImageDownscaler.Downscaled image = ImageDownscaler.downscale(imageBytes, mediaType);
+        String base64Image = Base64.getEncoder().encodeToString(image.bytes());
 
         // 2) 프롬프트 조립 (가구 학습 이력 주입)
         String prompt = promptBuilder.build(historyContext);
@@ -85,7 +87,7 @@ public class ReceiptAnalysisService {
         // 3) Claude Vision API 호출
         String responseText;
         try {
-            responseText = visionClient.analyzeImage(base64Image, mediaType, prompt);
+            responseText = visionClient.analyzeImage(base64Image, image.mediaType(), prompt);
         } catch (ClaudeVisionClient.ClaudeApiException e) {
             throw new AnalysisException("Claude API call failed", e);
         }
