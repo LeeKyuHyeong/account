@@ -19,6 +19,7 @@ services:
     container_name: account-app-mariadb-prod
     restart: always
     environment:
+      TZ: Asia/Seoul  # 컨테이너 시스템 시각(로그 등). 세션 기본존은 아래 --default-time-zone 이 담당
       MARIADB_ROOT_PASSWORD: ${ACCOUNT_DB_ROOT_PASSWORD:?required}
       MARIADB_DATABASE: ${ACCOUNT_DB_NAME:-account}
       MARIADB_USER: ${ACCOUNT_DB_USER:-account}
@@ -54,6 +55,9 @@ services:
       mariadb:
         condition: service_healthy
     environment:
+      # JVM 기본존 — 미설정 시 UTC 라 앱 타임스탬프가 DB NOW()(+09:00)와 9시간 엇갈림
+      TZ: Asia/Seoul
+
       # DB — compose 내부 DNS 로 mariadb 서비스명 사용. 호스트 mysqld 와 충돌 없음.
       ACCOUNT_DB_HOST: mariadb
       ACCOUNT_DB_PORT: "3306"
