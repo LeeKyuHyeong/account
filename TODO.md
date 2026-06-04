@@ -13,6 +13,18 @@
 - [ ] **거래 검색 (상점명·메모)** — `transactions/list` 필터에 keyword 필드. `Specification` 에 LIKE %keyword% (merchant OR memo)
 - [ ] **구독 Phase 2 — 실결제 (유예)** — Toss/PortOne/Stripe 정기결제: 빌링키, 웹훅(갱신/실패), 결제 이력, 별도 `Subscription` 엔티티(기간/상태). 외부 PG 계정·시크릿·HTTPS 웹훅 필요
 
+### 푸시 알림 (Web Push — 2026-06-04 계획 확정)
+
+> 채널 결정: **Web Push (VAPID + Service Worker)** — 네이티브 앱 없이 무료로 가능 (FCM/알림톡 배제).
+> ⚠ iOS 는 "홈 화면에 추가"(PWA 설치) 한 사용자만 수신 (iOS 정책, 우회 불가). Android Chrome 은 브라우저만으로 OK.
+> 의존성: `nl.martijndwars:web-push` 1개 + VAPID 키 쌍(시크릿 — env/`application-secret.yml`).
+
+- [ ] **0단계 — 푸시 기반**: Service Worker(sw.js) 등록 + 알림 권한 + 구독 저장 (`push_subscriptions` 테이블 신설, user_id 연결 — 브라우저당 1행) + `PushSendService` (410 Gone 구독 자동 삭제) + 테스트 발송 버튼. 더보기에 "알림 설정" (v1 은 전체 on/off 만)
+- [ ] **1단계 — 이벤트 알림 (상태 관리 불필요, 가장 단순)**: ① 배우자 거래 알림 (CONFIRMED 시, 입력자 본인 제외 — §3.1 [7] 의 원래 계획) ② 새 멤버 합류 알림 (`joinByInviteCode` 성공 시 — 카카오톡 초대와 연결)
+- [ ] **2단계 — 스케줄 알림**: ③ 일일 영수증 분석 요약 (`ReceiptAccuracyService.summarize()` 재사용 — "자동 요약" 논의의 C안 완성) ④ DRAFT 미확정 리마인더 (있을 때만). ⚠ 스케줄 잡이 2개 이상이 되는 시점 — CLAUDE.md 규칙대로 반복거래 스케줄러와 함께 `account-batch` 로 이전 검토
+- [ ] **3단계 — 상태 기반 알림 (손이 가장 큼)**: ⑤ 예산 임박/초과 (80%/100% 각 1회, 중복 발송 방지 상태 필요)
+- [ ] (후순위) ⑥ 반복 거래 발화 알림 ⑦ 월간 결산 요약 (`MonthlySummaryService.get()` 재사용) ⑧ 영수증 AI 한도 임박 (FREE 티어 업그레이드 유도)
+
 ### 운영
 - [ ] **운영 DB 시드 전체 제거** — 카카오로 새 가구 시작 → 시드 가구 1·2 + 유저 1~4 전부 삭제, 본인 실 카카오 가구만 보존. 절차: [`data-cleaning.md`](data-cleaning.md). ⚠ 아직 미적용 (비가역 — 백업 필수)
 - [ ] **root 비밀번호 SSH 차단** — 키 로그인 확립됨 → `/etc/ssh/sshd_config` `PasswordAuthentication no` (키 검증 후)
