@@ -14,11 +14,9 @@
 - [ ] **구독 Phase 2 — 실결제 (유예)** — Toss/PortOne/Stripe 정기결제: 빌링키, 웹훅(갱신/실패), 결제 이력, 별도 `Subscription` 엔티티(기간/상태). 외부 PG 계정·시크릿·HTTPS 웹훅 필요
 
 ### 운영
-- [ ] **운영 DB 데이터 클리닝** — dev 시드(테스트가구 + 약한 비번 계정) 제거. 절차: [`data-cleaning.md`](data-cleaning.md). ⚠ 아직 미적용
-- [ ] **member1(user 2) 비번 변경 또는 삭제** — `data-cleaning.md` §2
+- [ ] **운영 DB 시드 전체 제거** — 카카오로 새 가구 시작 → 시드 가구 1·2 + 유저 1~4 전부 삭제, 본인 실 카카오 가구만 보존. 절차: [`data-cleaning.md`](data-cleaning.md). ⚠ 아직 미적용 (비가역 — 백업 필수)
 - [ ] **root 비밀번호 SSH 차단** — 키 로그인 확립됨 → `/etc/ssh/sshd_config` `PasswordAuthentication no` (키 검증 후)
 - [ ] (선택) GitHub `production` 환경 Required reviewer 등록 → `ci.yml` 의 `deploy` 잡 승인 게이트 활성화
-- [ ] (선택) DBeaver 운영 DB 접근 — mariadb 를 `127.0.0.1:3316` 노출 (`docker-compose.prod.yml`, SSH 터널 전용)
 
 ---
 
@@ -46,6 +44,7 @@
 - **폰 UX** (2026-05-28, PR A~H) — 숫자 키패드 `inputmode`, 영수증 촬영 FAB, navbar 햄버거+active, 거래 필터 collapsible, flash 메시지 일관화, 인라인 저장 후 스크롤 위치 보존, 다크모드(`data-bs-theme`). `#httpServletRequest` SpEL 이슈는 `ViewContextAdvice`(`currentUri` 주입)로 해결
 - **기능 보강** (2026-05-28) — 관리자 페이지(`/web/admin`, OWNER 전용, 멤버 목록 + 비번 재설정), 카테고리 관리 UI(`/web/categories`, 삭제 안전 가드), 반복 거래(V4 + 매일 KST 05:00 스케줄러, 멱등)
 - **2026-05-30** — 구독 플랜 티어 Phase 1(FREE/FAMILY/PRO, 영수증 AI 월 한도 게이팅, V5 PERSONAL→FREE), 기간/연 결산(`/web/report`), 거래 CSV 내보내기(UTF-8 BOM), dead 도메인 정리(`monthly_summaries`·`wedding_items` + 월말집계 잡 제거, V6), 문서 전체 현행화
+- **2026-06-02** — **카카오 OAuth2 로그인 전환**: formLogin/BCrypt → `oauth2Login`, `CustomUserDetails`→`AccountPrincipal`(OAuth2User), `KakaoOAuth2UserService`(user find/create + dev seed-link), V7(users provider 필드 + email/password_hash nullable, `invite_codes` 테이블). **가구 온보딩**(생성 / 초대코드 가입 + 기본 카테고리 시더, `WebOnboardingController` + `SessionHouseholdContextFilter` 온보딩 가드)으로 회원가입·초대 흐름 실현 → 기존 v1.1 유예 항목 해소. OWNER 초대코드 발급 UI(+ tap-to-copy), admin 비번재설정 제거, 하단탭 web-app 셸 + 카카오 랜딩/더보기. 리포트 지출 분포 차트 + 연도별 프리셋, 차트 만-단위 Y축 정리, 영수증 추출 개선(상점/결제수단/시간). CI+deploy 단일 워크플로우 병합, 운영 mariadb 호스트 3311 노출(0.0.0.0 + 방화벽 관리자 IP 제한) → (선택)DBeaver 접근 항목 대체
 
 ---
 

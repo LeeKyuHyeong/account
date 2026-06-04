@@ -25,12 +25,12 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 
 ### 이 프로젝트에서의 적용 예시
 
-- **새 도메인 Entity 추가 시:** 가구 격리 대상인가? (`@Filter("householdFilter")` 적용 여부) — `User` / `Household` / `HouseholdMember` 만 비격리이며 나머지는 모두 `household_id` + Filter 가 필수. 임의로 빠뜨리면 격리 누수.
-- **세션 principal(`CustomUserDetails`) 필드 추가/변경 시:** `CustomUserDetailsService.loadUserByUsername` + `SessionHouseholdContextFilter`(주입) + 필요 시 `HouseholdContext` 까지 동기화. 한 곳만 고치지 말 것. (이전엔 JWT 클레임이었지만 M4 에서 JWT 인프라 전부 제거됨.)
+- **새 도메인 Entity 추가 시:** 가구 격리 대상인가? (`@Filter("householdFilter")` 적용 여부) — `User` / `Household` / `HouseholdMember` / `InviteCode` 만 비격리이며 나머지는 모두 `household_id` + Filter 가 필수. 임의로 빠뜨리면 격리 누수.
+- **세션 principal(`AccountPrincipal`) 필드 추가/변경 시:** `KakaoOAuth2UserService.loadUser` (카카오 user-info → principal 조립) + `SessionHouseholdContextFilter`(주입) + 온보딩 합류 후 `WebOnboardingController.refreshPrincipal`(세션 재저장) + 필요 시 `HouseholdContext` 까지 동기화. 한 곳만 고치지 말 것. (formLogin/`CustomUserDetails` 는 2026-06-02 카카오 OAuth2 단독 인증으로 대체됨.)
 - **영수증 분석 실패 보고 받으면:** 어느 layer 인지부터 확인 — `ReceiptStorage` (디스크 IO) / `ReceiptAnalysisService` (Claude 호출+JSON 파싱) / 카테고리 매칭 (`ReceiptIngestionService.resolveCategory`) / `Transaction` insert. 추측 패치 금지.
 - **새 SSR 화면 추가 시:** `Web*Controller` 컨벤션 — `record DTO + @ModelAttribute + @Valid + BindingResult`, 에러 시 `form` Map (원본값) + `errors` Map (필드 에러) 으로 재렌더. `th:field`/`@Setter` 안 씀. 인라인 편집 폼은 `budget.html` / `networth.html` 패턴 (`th:action` 으로 CSRF 자동 주입).
 - **격리 누수 함정:** `findById` (= `EntityManager.find`, PK 직접 로드) 는 Hibernate `@Filter` 가 안 걸려 타 가구 row 도 로드함. 단건 조회는 `findOne(Specification)` (criteria 쿼리, 필터 적용) 또는 `findAll().filter()` 사용. `TransactionService.get/update` (M1), `NetWorthService.update*/delete*` (M3) 가 같은 함정으로 수정된 전례 — 같은 실수 반복 금지.
-- **`User`/`Household`/`HouseholdMember` 는 `@Filter` 미적용** (전역 식별 단위). 멤버십 검증은 `findByHouseholdIdAndUserId` 같은 메서드로 코드에서 직접 가드 (관리자 비번 재설정의 가드 패턴 참조).
+- **`User`/`Household`/`HouseholdMember`/`InviteCode` 는 `@Filter` 미적용** (전역 식별 단위 — 초대코드는 가입 전 가구 컨텍스트 없이 조회돼야 함). 멤버십 검증은 `findByHouseholdIdAndUserId` 같은 메서드로 코드에서 직접 가드 (가구 설정 멤버 조회 `AdminUserService` 의 가드 패턴 참조).
 
 ---
 
@@ -53,7 +53,7 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 - `application-dev.yml` / `application-stg.yml` / `application-prd.yml` 분리는 도입 X. 현재는 `application.yml` + `application-secret.yml` (gitignored) + env 오버라이드 (운영도 동일 — `docker-compose.prod.yml` 에서 env 주입).
 - `account-batch` 가 비어 있어도 첫 잡 추가 시 `AbstractScheduledJob` 같은 부모 클래스부터 만들지 마라. 한 잡으로 끝나면 한 클래스로 끝낸다.
 - 인라인 폼 저장/삭제를 위해 새 `Web*Service` 만들기 전에 기존 `TransactionService` / `NetWorthService` / `MerchantHistoryService` 등에 메서드 추가가 가능한지부터 본다 (Web 컨트롤러 = 얇은 어댑터 컨벤션).
-- **MVP scope (`docs/account.md` §10 결정 사항 + §8 백로그) 를 임의로 확장하지 마라**: 회원가입/초대 UI, OWNER/MEMBER 권한 차등(관리자 페이지의 OWNER 게이트는 예외적 최소 적용), FCM 푸시, 결혼지출 화면 — 전부 v1.1 / v1.5 / v2 로 유예된 항목. (카테고리 커스터마이징 UI 는 2026-05-28 본격 구현됨 — 더 이상 유예 항목 아님. 구독 티어는 2026-05-30 Phase 1[FREE/FAMILY/PRO + 영수증 AI 월 한도 게이팅] 구현됨 — 단 실결제 Phase 2 는 여전히 유예.)
+- **MVP scope (`docs/account.md` §10 결정 사항 + §8 백로그) 를 임의로 확장하지 마라**: OWNER/MEMBER 권한 차등(가구설정/구독 페이지의 OWNER 게이트는 예외적 최소 적용), FCM 푸시, 결혼지출 화면 — v1.1 / v1.5 / v2 로 유예된 항목. (카테고리 커스터마이징 UI 는 2026-05-28 구현됨. 구독 티어는 2026-05-30 Phase 1[FREE/FAMILY/PRO + 영수증 AI 월 한도 게이팅] 구현됨 — 단 실결제 Phase 2 는 여전히 유예. 회원가입/가구 초대는 2026-06-02 카카오 OAuth2 가입 + 초대코드 온보딩으로 구현됨 — 더 이상 유예 항목 아님.)
 
 ---
 
@@ -110,7 +110,7 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 
 ### 이 프로젝트에서의 검증 패턴
 
-- **Backend Web 컨트롤러/Service 추가**: `./gradlew :account-api:compileJava` 통과 → `./gradlew :account-api:test` 통과 → (가능 시) `./gradlew :account-api:bootRun` 후 브라우저로 `/login` (`owner1@example.com / dev1234!`) → 해당 화면 검증. SQL 격리 확인은 `logging.level.org.hibernate.SQL=DEBUG` 켜고 `WHERE household_id = ?` 가 격리 엔티티 쿼리에 포함되는지 본다. 또는 `curl --cookie-jar c.txt --data "email=...&password=..." http://localhost:8080/login` 후 `curl -b c.txt http://localhost:8080/web/...`.
+- **Backend Web 컨트롤러/Service 추가**: `./gradlew :account-api:compileJava` 통과 → `./gradlew :account-api:test` 통과 → (가능 시) `./gradlew :account-api:bootRun` (로컬 기본 포트 8085) 후 브라우저로 `http://localhost:8085/login` → 카카오 로그인 (로컬은 `application-secret.yml` 의 `account.dev.kakao-links` 매핑으로 첫 로그인 시 시드 유저에 연결) → 해당 화면 검증. SQL 격리 확인은 `logging.level.org.hibernate.SQL=DEBUG` 켜고 `WHERE household_id = ?` 가 격리 엔티티 쿼리에 포함되는지 본다. (카카오 OAuth2 는 리다이렉트 플로우라 formLogin 시절의 `curl --data email&password` 세션 획득은 더 이상 불가 — 브라우저로 검증.)
 - **새 마이그레이션 추가**: `./gradlew :account-api:bootRun` → 기동 로그에 `Migrating schema "account" to version "Vx__..."` + `flyway_schema_history` 에 새 row → 시드/DDL 결과를 직접 SELECT 로 검증.
 - **새 SSR 템플릿 추가**: 컴파일은 안 잡힘 (런타임 평가). bootRun + 브라우저로 렌더 직접 확인 — 새 Thymeleaf 식 (`#httpServletRequest`, `sec:authorize` 등) 사용 시 특히 주의.
 - **격리에 영향 줄 수 있는 변경**: 자동 회귀 테스트 없음 — 수동으로 owner1 세션 → `/web/transactions` 22 카테고리, owner2 세션 → 5 카테고리, 익명 → `/login` 리다이렉트 시나리오 재현. `findById` 함정 (PK 직접 로드 → 필터 미적용) 사용했는지 코드 리뷰에서 반드시 확인.
@@ -125,22 +125,28 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 ### 부팅 / 셋업
 
 ```bash
-# 시크릿 템플릿 복사 (최초 1회) — Claude API 키 필요 (JWT secret 은 M4 에서 제거됨)
+# 시크릿 템플릿 복사 (최초 1회) — Claude API 키 + 카카오 OAuth2 client-id/secret 필요
+# (JWT secret 은 M4 에서, 비번 로그인은 2026-06-02 카카오 전환으로 불필요)
 cp application-secret.yml.example application-secret.yml
 # 그리고 application-secret.yml 의 값 채우기 — 절대 커밋 금지
+#   KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET (developers.kakao.com 앱 등록)
+#   account.dev.kakao-links: { "<내 카카오 providerUserId>": "owner1@example.com" }
+#   첫 로그인 시 서버 로그의 providerUserId 를 위 매핑에 넣고 재기동하면 시드 데이터로 로그인된다.
 
 # MariaDB (호스트 포트 3305, 호스트 3306 은 기존 mysqld 점유)
 docker compose up -d
 
-# 백엔드 기동 — Flyway 가 V1~V6 자동 적용 (V5: PERSONAL→FREE 리네임, V6: 미사용 테이블 DROP)
+# 백엔드 기동 — Flyway 가 V1~V7 자동 적용
+# (V5: PERSONAL→FREE 리네임, V6: 미사용 테이블 DROP, V7: 카카오 인증 필드 + invite_codes)
 ./gradlew :account-api:bootRun
 
-# 브라우저로 http://localhost:8080/login
-# 로컬 시드 계정 (V3__seed_dev_bcrypt_passwords): 4명 모두 비번 "dev1234!"
-#   owner1@example.com  (OWNER, 우리집)       — 관리자 페이지 접근 가능
+# 브라우저로 http://localhost:8085/login → "카카오톡으로 시작하기"
+# 로컬 시드 계정 (V2/V3): 비번 로그인 폐지 → account.dev.kakao-links 매핑으로 카카오 연결
+#   owner1@example.com  (OWNER, 우리집)       — 가구 설정/구독 페이지 접근 가능
 #   member1@example.com (MEMBER, 우리집)
 #   owner2@example.com  (OWNER, 테스트가구)
 #   member2@example.com (MEMBER, 테스트가구)
+# 매핑에 없는 새 카카오 계정으로 로그인하면 신규 유저 → /web/onboarding (가구 생성/초대코드)
 ```
 
 ### 빌드 / 테스트
@@ -181,9 +187,9 @@ account-core   ←─── account-api ←─── (없음)
    └── account-batch    └── account-ai
 ```
 
-- **`account-core`**: 도메인 Entity (11개) + Repository + Multi-tenant 격리 본체 (`HouseholdContext`, `HouseholdFilterAspect`, Hibernate `@Filter`) + Flyway 마이그레이션 (V1~V6). **다른 어떤 `account-*` 모듈에도 의존 X** (`build.gradle.kts` 의 강한 정책).
+- **`account-core`**: 도메인 Entity (12개 — V7 에서 `InviteCode` 추가) + Repository + Multi-tenant 격리 본체 (`HouseholdContext`, `HouseholdFilterAspect`, Hibernate `@Filter`) + Flyway 마이그레이션 (V1~V7). **다른 어떤 `account-*` 모듈에도 의존 X** (`build.gradle.kts` 의 강한 정책).
 - **`account-ai`**: Claude Vision API 호출 + 프롬프트 조립 + JSON 파싱. **다른 어떤 `account-*` 모듈에도 의존 X**. `MerchantHistoryProvider` 같은 인터페이스만 외부에 공개.
-- **`account-api`**: **Thymeleaf SSR 컨트롤러** (`Web*Controller`, `/web/**`) + **Spring Security 세션 + formLogin** + 영수증 인제스천 흐름. `account-core` + `account-ai` 둘 다에 의존하는 유일한 모듈 — 어댑터 (예: `JpaMerchantHistoryProvider`) 는 이쪽에 배치. ~~REST 컨트롤러 + JWT 인증~~ 은 M4 (2026-05-27) 에 제거됨.
+- **`account-api`**: **Thymeleaf SSR 컨트롤러** (`Web*Controller`, `/web/**`) + **Spring Security 세션 + 카카오 OAuth2** (`oauth2Login`, `KakaoOAuth2UserService` → `AccountPrincipal`) + 가구 온보딩 (생성/초대코드, `WebOnboardingController`) + 영수증 인제스천 흐름. `account-core` + `account-ai` 둘 다에 의존하는 유일한 모듈 — 어댑터 (예: `JpaMerchantHistoryProvider`) 는 이쪽에 배치. ~~REST 컨트롤러 + JWT 인증~~ 은 M4 (2026-05-27), ~~formLogin/BCrypt~~ 은 2026-06-02 카카오 전환에 제거됨.
 - **`account-batch`**: 영수증 단계적 압축/삭제 잡 계획만 — **현재 비어 있음**. (~~월말 집계 잡~~ 은 V6(2026-05-30)에서 제거 — 집계는 on-the-fly 라 불필요. 그전엔 `MonthlySummaryJob` 이 있었음.) `account-core` 에만 의존, `account-api` 를 의존하지 않음(역방향: `account-api` 가 본 모듈을 포함해 `@Scheduled` 잡을 같은 프로세스에서 기동). 반복 거래 스케줄러는 현재 잡이 1개라 `account-api/recurring/` 안에 거치 — 잡이 2개 이상 되면 본 모듈로 이전.
 - ~~`flutter_app`~~: M4 (2026-05-27) 에 디렉터리 삭제 — Thymeleaf SSR 단일화.
 
@@ -191,7 +197,7 @@ account-core   ←─── account-api ←─── (없음)
 
 ```
 1. 브라우저가 JSESSIONID 쿠키 첨부 요청
-2. Spring Security 가 세션에서 SecurityContext + CustomUserDetails 복원
+2. Spring Security 가 세션에서 SecurityContext + AccountPrincipal(OAuth2User) 복원
 3. SessionHouseholdContextFilter 가 principal.activeHouseholdId 를
    HouseholdContext.set(Long) 로 ThreadLocal 바인딩
 4. @Transactional 메서드 진입 시 HouseholdFilterAspect 가
@@ -202,17 +208,18 @@ account-core   ←─── account-api ←─── (없음)
 
 핵심 보장: **`HouseholdContext` 미설정 상태에서 격리 엔티티를 조회하면 `-1` sentinel 로 필터가 켜져 0 rows 반환** (`HouseholdFilterAspect.NO_TENANT_SENTINEL`). 인증 단계 누수에 대한 두 번째 방어선이다 — 임의로 끄지 말 것.
 
-비격리 Entity (Filter 미적용): `User`, `Household`, `HouseholdMember`. 나머지 8개 도메인 Entity는 `@Filter("householdFilter")` 가 클래스에 적용되어 있다 — 비격리 엔티티는 코드로 `findByHouseholdId*` 가드 (관리자 비번 재설정의 멤버십 검증 패턴).
+비격리 Entity (Filter 미적용): `User`, `Household`, `HouseholdMember`, `InviteCode`. 나머지 8개 도메인 Entity는 `@Filter("householdFilter")` 가 클래스에 적용되어 있다 — 비격리 엔티티는 코드로 `findByHouseholdId*` 가드 (가구 설정 멤버 조회 `AdminUserService` 의 검증 패턴). 초대코드는 가입 전(가구 컨텍스트 없음)에 코드로 직접 조회된다.
 
 ### 6.3 핵심 흐름
 
-- **로그인**: `WebAuthController.login` → Spring Security formLogin (`usernameParameter=email`) → `CustomUserDetailsService.loadUserByUsername` (user + 첫 HouseholdMember 조회) → `CustomUserDetails(userId, activeHouseholdId, role, email, passwordHash)` → SecurityContext + HttpSession 저장 → `defaultSuccessUrl=/web/home`.
+- **로그인**: `/login` (카카오 랜딩 `auth/login.html`) → `oauth2Login` → 카카오 인가 → `KakaoOAuth2UserService.loadUser` (카카오 `id`=providerUserId 로 user 조회/생성 또는 dev 시드 링크 + 첫 HouseholdMember 로 활성 가구 결정) → `AccountPrincipal(userId, activeHouseholdId, role, nickname, attributes)` → SecurityContext + HttpSession 저장 → `OnboardingAwareSuccessHandler` 가 가구 있으면 `/web/home`, 없으면 `/web/onboarding`.
+- **온보딩 (가구 없는 신규 가입자)**: `WebOnboardingController` (`/web/onboarding`) → `choose` (가족 만들기 / 초대코드 입력) → `HouseholdOnboardingService.createHousehold` (OWNER + 기본 카테고리 `DefaultCategorySeedService` 시드) 또는 `joinByInviteCode` (유효 코드 검증 → MEMBER 합류 + `InviteCode.markUsed`). 합류 후 `refreshPrincipal` 로 세션 principal 의 activeHouseholdId/role 갱신. `SessionHouseholdContextFilter` 가 가구 없는 유저의 `/web/**`(온보딩 제외) 접근을 `/web/onboarding` 으로 가드.
 - **영수증 인제스천**: `WebReceiptController` → `ReceiptIngestionService.ingest` (@Transactional 단일 트랜잭션) → `ReceiptStorage.store` (디스크) + `Receipt` insert + `MerchantHistoryProvider.getRecentHistory` + `ReceiptAnalysisService.analyze` (Claude) + 카테고리 fallback 매칭 + DRAFT `Transaction` insert → `receipts/confirm.html` 렌더 (전체필드 편집 + DRAFT→CONFIRMED 확정은 `POST /web/transactions/{id}` 재사용).
 - **거래 목록**: `WebTransactionController.list` → `TransactionService.list` → `JpaSpecificationExecutor` 로 동적 필터 (from/to/categoryId/type/status) + 페이지네이션 + `occurred_at DESC`, soft-delete (`deletedAt IS NULL`) 자동 제외 → `transactions/list.html` 날짜별 그룹.
 - **거래 삭제 (soft)**: `POST /web/transactions/{id}/delete` → `TransactionService.softDelete` → `findOne(Specification)` 격리 가드 + `Transaction.softDelete(actor)` (deletedAt + updatedBy 세팅) + `TransactionHistoryService.logDelete` (ChangeType.DELETE + beforeJson). 거래 수정 화면의 별도 폼 + native `confirm()` 가드.
 - **카테고리 관리**: `WebCategoryController` → `CategoryQueryService` 의 `create/edit/delete`. 단건 조회는 `findAll().filter()` (Hibernate filter 적용). 삭제 시 `transactionRepository.countByCategoryId` + `recurringRepository.countByCategoryId` 둘 다 0 이어야 통과 — 하나라도 양수면 `IllegalStateException` + 어디서 막혔는지 friendly 메시지. DB FK 가 RESTRICT 라 사전 카운트는 사용자 친절 + 정확한 안내용.
 - **반복 거래 자동 적재**: `RecurringTransactionScheduler` 가 매일 KST 05:00 `@Scheduled` → `RecurringTransactionService.runDueAcrossHouseholds(today)` → 가구별 `runDueForHousehold` (자체 `@Transactional` + `HouseholdContext` 명시 set/clear). 가구 단위 try-catch 라 한 가구 실패가 다음 가구를 막지 않음. `runRule` 은 `last_run_year_month` (YYYY-MM) 가 현재월이면 skip (멱등), today < fireDate 면 skip, day=31 같은 짧은 달은 말일로 클램프. 발화 시 `TransactionService.create` 재사용 → CONFIRMED 거래 + history CREATE + merchant_history upsert. author=`household.owner`. 사용자가 `POST /web/recurring/run-now` 로 동일 로직 즉시 실행 가능 (멱등).
-- **관리자 (OWNER 전용)**: `WebAdminController` → `AdminUserService.listMembers / resetPassword` → BCrypt 인코딩 후 `User.changePassword(hash)`. 가구 경계는 `findByHouseholdIdAndUserId` 로 직접 가드 (User/HouseholdMember 비격리).
+- **가구 설정 (OWNER 전용)**: `WebAdminController` (`/web/admin`) → `AdminUserService.listMembers` (멤버 목록) + `InviteCodeService.generate/listActive` (초대코드 발급/조회 — 혼동문자 제외 8자, 충돌 시 재시도). 가구 경계는 `findByHouseholdId` 로 직접 가드 (User/HouseholdMember/InviteCode 비격리). (비번 재설정은 카카오 전환으로 제거됨.)
 - **기간/연 결산**: `WebReportController` (`/web/report`) → `MonthlySummaryService.getRange(from, to, label)` (월 집계 `get(YearMonth)` 과 private `aggregate(from,to)` 공용 → `PeriodSummaryResponse`). 프리셋(이번 달/지난 달/올해/작년)은 컨트롤러가 날짜만 계산, 기본 올해 전체.
 - **거래 CSV 내보내기**: `WebTransactionController.export` (`GET /web/transactions/export`) → `TransactionService.listForExport` (목록과 동일 `buildSpec`, 페이지네이션 없이 전체) → UTF-8 **BOM 바이트 직접 부착**(엑셀 한글) + RFC4180 escape. 외부 라이브러리 없음.
 - **구독 플랜 (OWNER 전용)**: `WebPlanController` (`/web/plan`) → `PlanService` (가구 `planType` 조회/변경 + 이번 달 영수증 사용량). 게이팅 본체는 `ReceiptIngestionService.ingest` 맨 앞 — `PlanType.monthlyReceiptQuota()` 초과 시 `ReceiptQuotaExceededException` (Claude 호출 전 fail-fast). 티어 FREE/FAMILY/PRO (실결제 비범위).
