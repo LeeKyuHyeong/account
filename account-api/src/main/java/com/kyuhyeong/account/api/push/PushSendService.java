@@ -101,6 +101,7 @@ public class PushSendService {
      * <p>{@code PushSubscription} 은 비격리 엔티티지만, 수신자 목록을 호출자가 신뢰하는
      * householdId 의 멤버십({@code HouseholdMember})으로 한정하므로 가구 경계가 지켜진다.
      *
+     * @param exceptUserId 제외할 행위자 — {@code null} 이면 전원 발송 (다이제스트 등)
      * @return 발송 성공 수 (비활성/수신자 없음이면 0)
      */
     @Transactional
