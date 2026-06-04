@@ -3,6 +3,7 @@ package com.kyuhyeong.account.api.push;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyuhyeong.account.core.entity.PushSubscription;
+import com.kyuhyeong.account.core.repository.HouseholdMemberRepository;
 import com.kyuhyeong.account.core.repository.PushSubscriptionRepository;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
@@ -33,6 +34,7 @@ public class PushSendService {
     private static final Logger log = LoggerFactory.getLogger(PushSendService.class);
 
     private final PushSubscriptionRepository subscriptionRepository;
+    private final HouseholdMemberRepository householdMemberRepository;
     private final ObjectMapper objectMapper;
 
     /** VAPID 키 미설정이면 null — 푸시 전체 비활성. */
@@ -40,11 +42,13 @@ public class PushSendService {
 
     public PushSendService(
             PushSubscriptionRepository subscriptionRepository,
+            HouseholdMemberRepository householdMemberRepository,
             ObjectMapper objectMapper,
             @Value("${account.push.vapid.public-key:}") String publicKey,
             @Value("${account.push.vapid.private-key:}") String privateKey,
             @Value("${account.push.vapid.subject:mailto:admin@example.com}") String subject) {
         this.subscriptionRepository = subscriptionRepository;
+        this.householdMemberRepository = householdMemberRepository;
         this.objectMapper = objectMapper;
         this.pushService = buildPushService(publicKey, privateKey, subject);
     }
@@ -84,6 +88,37 @@ public class PushSendService {
         String payload = toPayload(title, body, url);
         int sent = 0;
         for (PushSubscription sub : subscriptions) {
+            if (sendOne(sub, payload)) {
+                sent++;
+            }
+        }
+        return sent;
+    }
+
+    /**
+     * 가구 멤버 전원(행위자 제외)의 모든 기기로 발송 — "배우자 알림"의 본체.
+     *
+     * <p>{@code PushSubscription} 은 비격리 엔티티지만, 수신자 목록을 호출자가 신뢰하는
+     * householdId 의 멤버십({@code HouseholdMember})으로 한정하므로 가구 경계가 지켜진다.
+     *
+     * @return 발송 성공 수 (비활성/수신자 없음이면 0)
+     */
+    @Transactional
+    public int sendToHouseholdExcept(Long householdId, Long exceptUserId,
+                                     String title, String body, String url) {
+        if (!isEnabled()) {
+            return 0;
+        }
+        List<Long> recipientIds = householdMemberRepository.findByHouseholdId(householdId).stream()
+                .map(m -> m.getUser().getId())
+                .filter(id -> !id.equals(exceptUserId))
+                .toList();
+        if (recipientIds.isEmpty()) {
+            return 0;
+        }
+        String payload = toPayload(title, body, url);
+        int sent = 0;
+        for (PushSubscription sub : subscriptionRepository.findAllByUserIdIn(recipientIds)) {
             if (sendOne(sub, payload)) {
                 sent++;
             }
