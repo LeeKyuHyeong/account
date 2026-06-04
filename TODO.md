@@ -20,7 +20,7 @@
 > 의존성: `nl.martijndwars:web-push` 1개 + VAPID 키 쌍(시크릿 — env/`application-secret.yml`).
 
 - [x] ~~**0단계 — 푸시 기반**~~ → **2026-06-04 구현** (로컬 테스트 알림 수신 검증): V8 `push_subscriptions` + `PushSubscription`(비격리 — User 군, user_id 코드 가드) + `PushSubscriptionService`(endpoint upsert/재바인딩) + `PushSendService`(VAPID, 404/410 자동 정리, 키 미설정 시 비활성) + `/web/push` 알림 설정(켜기/끄기/테스트) + `static/sw.js`. 운영 `.env.prod` 에 VAPID 키 입력 완료 — 다음 배포에서 반영
-- [ ] **1단계 — 이벤트 알림 (상태 관리 불필요, 가장 단순)**: ① 배우자 거래 알림 (CONFIRMED 시, 입력자 본인 제외 — §3.1 [7] 의 원래 계획) ② 새 멤버 합류 알림 (`joinByInviteCode` 성공 시 — 카카오톡 초대와 연결)
+- [x] ~~**1단계 — 이벤트 알림**~~ → **2026-06-04 구현** (⚠ 완전 검증은 운영에서 2인 2기기 필요 — 본인+아내 폰): ① 배우자 거래 알림 — 수동 입력 + 확정(영수증 컨펌 포함) 시 `sendToHouseholdExcept` 로 행위자 제외 발송, 단순 수정·반복거래 자동발화는 제외(컨트롤러 훅이라 자연 배제) ② 새 멤버 합류 알림 (`join` 성공 시 기존 멤버에게)
 - [ ] **2단계 — 스케줄 알림**: ③ 일일 영수증 분석 요약 (`ReceiptAccuracyService.summarize()` 재사용 — "자동 요약" 논의의 C안 완성) ④ DRAFT 미확정 리마인더 (있을 때만). ⚠ 스케줄 잡이 2개 이상이 되는 시점 — CLAUDE.md 규칙대로 반복거래 스케줄러와 함께 `account-batch` 로 이전 검토
 - [ ] **3단계 — 상태 기반 알림 (손이 가장 큼)**: ⑤ 예산 임박/초과 (80%/100% 각 1회, 중복 발송 방지 상태 필요)
 - [ ] (후순위) ⑥ 반복 거래 발화 알림 ⑦ 월간 결산 요약 (`MonthlySummaryService.get()` 재사용) ⑧ 영수증 AI 한도 임박 (FREE 티어 업그레이드 유도)
