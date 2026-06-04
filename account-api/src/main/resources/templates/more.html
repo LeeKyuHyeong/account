@@ -23,6 +23,10 @@
         <div class="toss-list-row__main"><span class="toss-list-row__title">영수증 분석 이력</span></div>
         <span class="toss-list-row__sub">›</span>
       </a>
+      <a th:href="@{/web/push}" class="toss-list-row">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">알림 설정</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
       <a th:href="@{/web/plan}" class="toss-list-row" sec:authorize="hasRole('OWNER')">
         <div class="toss-list-row__main"><span class="toss-list-row__title">구독</span></div>
         <span class="toss-list-row__sub">›</span>

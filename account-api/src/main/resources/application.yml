@@ -116,6 +116,13 @@ account:
     # 도메인 제한이 걸리는 공개 키지만 로컬/운영 앱이 달라 env 로 주입. 비어 있으면 공유 버튼 숨김.
     # 카카오 콘솔에서 [플랫폼 > Web] 에 사이트 도메인 등록 필요 (localhost:8085 / 운영 도메인).
     javascript-key: ${KAKAO_JS_KEY:}
+  push:
+    # Web Push (VAPID). 키 미설정 시 푸시 전체 비활성 (알림 설정 화면에 안내만 표시).
+    # private-key 는 시크릿 — application-secret.yml / .env.prod 로만 주입.
+    vapid:
+      public-key: ${ACCOUNT_PUSH_VAPID_PUBLIC_KEY:}
+      private-key: ${ACCOUNT_PUSH_VAPID_PRIVATE_KEY:}
+      subject: ${ACCOUNT_PUSH_VAPID_SUBJECT:mailto:rbgud2380@naver.com}
 
 logging:
   level:

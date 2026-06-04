@@ -35,8 +35,10 @@ public class SecurityConfig {
             throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        // /sw.js — 브라우저가 Service Worker 갱신 체크를 세션과 무관하게
+                        // 수행하므로 익명 허용 (로그인 리다이렉트 HTML 이 오면 SW 가 깨진다).
                         .requestMatchers("/login", "/error", "/webjars/**",
-                                "/css/**", "/js/**", "/favicon.ico",
+                                "/css/**", "/js/**", "/favicon.ico", "/sw.js",
                                 "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
                         .requestMatchers("/web/plan/**").hasRole("OWNER")
