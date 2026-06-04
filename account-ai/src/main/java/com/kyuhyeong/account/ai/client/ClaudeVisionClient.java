@@ -59,22 +59,18 @@ public class ClaudeVisionClient {
         log.debug("Calling Claude Vision API: model={}, imageBytes={}, promptLen={}",
                 properties.model(), base64Image.length(), prompt.length());
 
-        MessageResponse response;
-        try {
-            response = claudeRestClient.post()
-                    .uri(MESSAGES_ENDPOINT)
-                    .body(request)
-                    .retrieve()
-                    .body(MessageResponse.class);
-        } catch (RestClientResponseException e) {
-            log.error("Claude API error: status={}, body={}",
-                    e.getStatusCode(), e.getResponseBodyAsString());
-            throw new ClaudeApiException(
-                    "Claude API call failed: HTTP " + e.getStatusCode().value(), e);
-        }
+        MessageResponse response = callWithRetry(request);
 
         if (response == null || response.content() == null || response.content().isEmpty()) {
             throw new ClaudeApiException("Claude returned empty response");
+        }
+
+        // max_tokens 로 잘린 응답은 불완전한 JSON — 파싱 단계에서 "JSON 파싱 실패" 로
+        // 오진되기 전에 원인을 명확히 드러낸다.
+        if ("max_tokens".equals(response.stopReason())) {
+            throw new ClaudeApiException(
+                    "Claude response truncated (stop_reason=max_tokens) — "
+                            + "increase account.claude.max-tokens (current: " + properties.maxTokens() + ")");
         }
 
         // assistant 메시지의 첫 텍스트 블록 추출
@@ -93,6 +89,42 @@ public class ClaudeVisionClient {
         return text;
     }
 
+    /**
+     * API 를 호출하고, 일시 장애(429 rate limit / 529 overloaded / 5xx)는 선형 백오프로
+     * 재시도한다. 4xx (잘못된 키, 이미지 너무 큼 등) 는 재시도해도 결과가 같으므로 즉시 실패.
+     */
+    private MessageResponse callWithRetry(MessageRequest request) {
+        int attempt = 0;
+        while (true) {
+            try {
+                return claudeRestClient.post()
+                        .uri(MESSAGES_ENDPOINT)
+                        .body(request)
+                        .retrieve()
+                        .body(MessageResponse.class);
+            } catch (RestClientResponseException e) {
+                int status = e.getStatusCode().value();
+                boolean retryable = status == 429 || status >= 500;
+                if (!retryable || attempt >= properties.maxRetries()) {
+                    log.error("Claude API error: status={}, body={}",
+                            e.getStatusCode(), e.getResponseBodyAsString());
+                    throw new ClaudeApiException(
+                            "Claude API call failed: HTTP " + status, e);
+                }
+                attempt++;
+                long backoffMs = properties.retryBackoff().toMillis() * attempt;
+                log.warn("Claude API HTTP {} — retrying {}/{} after {}ms",
+                        status, attempt, properties.maxRetries(), backoffMs);
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new ClaudeApiException("Interrupted during retry backoff", ie);
+                }
+            }
+        }
+    }
+
     private MessageRequest buildRequest(String base64Image, String mediaType, String prompt) {
         ImageSource source = new ImageSource("base64", mediaType, base64Image);
         ContentBlockParam imageBlock = ContentBlockParam.image(source);
@@ -103,6 +135,8 @@ public class ClaudeVisionClient {
         return new MessageRequest(
                 properties.model(),
                 properties.maxTokens(),
+                // 추출(extraction) 작업 — 같은 영수증엔 같은 결과가 나오도록 변동성 제거.
+                0.0,
                 List.of(userMessage)
         );
     }
@@ -123,6 +157,7 @@ public class ClaudeVisionClient {
     private record MessageRequest(
             @JsonProperty("model") String model,
             @JsonProperty("max_tokens") int maxTokens,
+            @JsonProperty("temperature") double temperature,
             @JsonProperty("messages") List<UserMessage> messages
     ) {}
 

@@ -102,6 +102,13 @@ server:
 account:
   claude:
     api-key: ${ACCOUNT_CLAUDE_API_KEY:placeholder-set-via-application-secret-yml}
+    # 모델/토큰/타임아웃은 재배포 없이 환경변수로 조정 가능 (기본값은 ClaudeProperties 와 동일).
+    model: ${ACCOUNT_CLAUDE_MODEL:claude-sonnet-4-6}
+    max-tokens: ${ACCOUNT_CLAUDE_MAX_TOKENS:2048}
+    timeout: ${ACCOUNT_CLAUDE_TIMEOUT:30s}
+    connect-timeout: ${ACCOUNT_CLAUDE_CONNECT_TIMEOUT:5s}
+    max-retries: ${ACCOUNT_CLAUDE_MAX_RETRIES:2}
+    retry-backoff: ${ACCOUNT_CLAUDE_RETRY_BACKOFF:1s}
   receipts:
     storage-root: ${ACCOUNT_RECEIPTS_STORAGE_ROOT:./data/receipts}
 
