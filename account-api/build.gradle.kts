@@ -48,6 +48,10 @@ dependencies {
     // 운영 jar(bootJar) 에는 포함되지 않는다(developmentOnly 스코프).
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
+    // ─── Web Push (VAPID) — 푸시 알림 0단계 ───
+    implementation("nl.martijndwars:web-push:5.1.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
     // ─── JWT (jjwt) ───
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
