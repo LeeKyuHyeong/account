@@ -1,5 +1,6 @@
 package com.kyuhyeong.account.api.web;
 
+import com.kyuhyeong.account.api.push.PushSendService;
 import com.kyuhyeong.account.api.security.AccountPrincipal;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.CreateTransactionRequest;
 import com.kyuhyeong.account.api.transaction.TransactionDtos.PageResponse;
@@ -59,6 +60,7 @@ public class WebTransactionController {
 
     private final TransactionService transactionService;
     private final CategoryQueryService categoryQueryService;
+    private final PushSendService pushSendService;
 
     @GetMapping
     public String list(
@@ -185,7 +187,8 @@ public class WebTransactionController {
             model.addAttribute("categories", categoryQueryService.findAllSorted());
             return "transactions/new";
         }
-        transactionService.create(dto, user.getUserId());
+        TransactionResponse created = transactionService.create(dto, user.getUserId());
+        notifyHousehold(user, created, "님이 거래를 등록했어요");
         ra.addFlashAttribute("message", "거래가 추가되었습니다.");
         return "redirect:/web/transactions";
     }
@@ -209,10 +212,14 @@ public class WebTransactionController {
                          @AuthenticationPrincipal AccountPrincipal user,
                          RedirectAttributes ra) {
         boolean confirmed = Boolean.TRUE.equals(confirm);
-        transactionService.edit(id, new TransactionService.EditRequest(
+        TransactionResponse updated = transactionService.edit(id, new TransactionService.EditRequest(
                 categoryId, amount, occurredAt,
                 emptyToNull(merchant), emptyToNull(paymentMethod), emptyToNull(memo),
                 confirmed), user.getUserId());
+        // 확정(DRAFT→CONFIRMED, 영수증 컨펌 포함) 시에만 배우자 알림 — 단순 수정은 소음이라 제외
+        if (confirmed && updated.status() == TransactionStatus.CONFIRMED) {
+            notifyHousehold(user, updated, "님이 영수증 거래를 확정했어요");
+        }
         ra.addFlashAttribute("message", confirmed ? "거래가 확정되었습니다." : "거래가 수정되었습니다.");
         return "redirect:/web/transactions";
     }
@@ -225,6 +232,20 @@ public class WebTransactionController {
         transactionService.softDelete(id, user.getUserId());
         ra.addFlashAttribute("message", "거래가 삭제되었습니다.");
         return "redirect:/web/transactions";
+    }
+
+    /**
+     * 가구 멤버(본인 제외)에게 거래 푸시 — 사용자 행위 시점에만 호출한다.
+     * 반복 거래 스케줄러는 {@code TransactionService.create} 를 직접 쓰므로 알림 없음 (의도 — TODO ⑥ 후순위).
+     */
+    private void notifyHousehold(AccountPrincipal user, TransactionResponse tx, String actionSuffix) {
+        String actor = user.getNickname() == null ? "가족" : user.getNickname();
+        String amountText = String.format("%,d원", tx.amount().longValue());
+        String body = tx.categoryName() + " " + amountText
+                + (tx.merchant() == null ? "" : " · " + tx.merchant());
+        pushSendService.sendToHouseholdExcept(
+                user.getActiveHouseholdId(), user.getUserId(),
+                actor + actionSuffix, body, "/web/transactions/" + tx.id());
     }
 
     private static String emptyToNull(String s) {

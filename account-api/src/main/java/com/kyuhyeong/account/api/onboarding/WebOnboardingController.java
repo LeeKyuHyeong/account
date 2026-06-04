@@ -1,5 +1,6 @@
 package com.kyuhyeong.account.api.onboarding;
 
+import com.kyuhyeong.account.api.push.PushSendService;
 import com.kyuhyeong.account.api.security.AccountPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +41,7 @@ public class WebOnboardingController {
     private static final int MAX_NAME_LENGTH = 100;
 
     private final HouseholdOnboardingService onboardingService;
+    private final PushSendService pushSendService;
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
@@ -92,6 +94,10 @@ public class WebOnboardingController {
         try {
             Long householdId = onboardingService.joinByInviteCode(user.getUserId(), code);
             refreshPrincipal(request, response, user, householdId, "MEMBER");
+            // 기존 멤버들에게 합류 알림 — 초대코드를 보낸 쪽이 합류 완료를 바로 알 수 있게
+            String nickname = user.getNickname() == null ? "새 멤버" : user.getNickname();
+            pushSendService.sendToHouseholdExcept(householdId, user.getUserId(),
+                    "새 멤버 합류", nickname + "님이 가구에 합류했어요", "/web/home");
             return "redirect:/web/home";
         } catch (IllegalArgumentException | IllegalStateException e) {
             model.addAttribute("form", Map.of("code", code == null ? "" : code));
