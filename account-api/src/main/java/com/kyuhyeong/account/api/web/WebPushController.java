@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Map;
 
@@ -94,6 +95,14 @@ public class WebPushController {
     @ResponseBody
     public Map<String, Object> sendDigestNow() {
         digestService.sendDailyDigestForCurrentHousehold(LocalDate.now(KST));
+        return Map.of("ok", true);
+    }
+
+    /** 지난달 결산 즉시 발송 — 매월 1일 스케줄의 수동 검증 경로. */
+    @PostMapping("/closing-now")
+    @ResponseBody
+    public Map<String, Object> sendClosingNow() {
+        digestService.sendMonthlyClosingForCurrentHousehold(YearMonth.now(KST).minusMonths(1));
         return Map.of("ok", true);
     }
 }
