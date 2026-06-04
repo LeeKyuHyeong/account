@@ -2,6 +2,7 @@ package com.kyuhyeong.account.api.web;
 
 import com.kyuhyeong.account.ai.model.ReceiptAnalysisResult;
 import com.kyuhyeong.account.ai.service.ReceiptAnalysisService;
+import com.kyuhyeong.account.api.receipt.ReceiptAccuracyService;
 import com.kyuhyeong.account.api.receipt.ReceiptIngestionService;
 import com.kyuhyeong.account.api.receipt.ReceiptQuotaExceededException;
 import com.kyuhyeong.account.api.security.AccountPrincipal;
@@ -36,14 +37,27 @@ public class WebReceiptController {
 
     private static final Logger log = LoggerFactory.getLogger(WebReceiptController.class);
     private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
+    private static final int ANALYSIS_HISTORY_ROWS = 30;
 
     private final ReceiptIngestionService ingestionService;
+    private final ReceiptAccuracyService accuracyService;
     private final TransactionService transactionService;
     private final CategoryQueryService categoryQueryService;
 
     @GetMapping("/new")
     public String uploadForm() {
         return "receipts/new";
+    }
+
+    /** AI 분석값 vs 최종 저장값 비교 — 분석 정확도 모니터링 (최근 30건). */
+    @GetMapping("/analysis")
+    public String analysisHistory(Model model) {
+        var rows = accuracyService.listRecent(ANALYSIS_HISTORY_ROWS);
+        model.addAttribute("rows", rows);
+        model.addAttribute("changedCount",
+                rows.stream().filter(ReceiptAccuracyService.Row::hasDiff).count());
+        model.addAttribute("summary", accuracyService.summarize(rows));
+        return "receipts/analysis";
     }
 
     @PostMapping
