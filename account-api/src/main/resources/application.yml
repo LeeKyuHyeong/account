@@ -111,6 +111,11 @@ account:
     retry-backoff: ${ACCOUNT_CLAUDE_RETRY_BACKOFF:1s}
   receipts:
     storage-root: ${ACCOUNT_RECEIPTS_STORAGE_ROOT:./data/receipts}
+  kakao:
+    # 카카오톡 초대 공유(JS SDK)용 JavaScript 키 — REST API 키와 다른 키.
+    # 도메인 제한이 걸리는 공개 키지만 로컬/운영 앱이 달라 env 로 주입. 비어 있으면 공유 버튼 숨김.
+    # 카카오 콘솔에서 [플랫폼 > Web] 에 사이트 도메인 등록 필요 (localhost:8085 / 운영 도메인).
+    javascript-key: ${KAKAO_JS_KEY:}
 
 logging:
   level:

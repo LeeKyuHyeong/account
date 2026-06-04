@@ -74,6 +74,8 @@ services:
       # 카카오 OAuth2 (운영 앱 kh_account_app) — .env.prod 에서 주입.
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?required}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?required}
+      # 카카오톡 초대 공유용 JavaScript 키 (선택 — 비우면 공유 버튼 숨김)
+      KAKAO_JS_KEY: ${KAKAO_JS_KEY:-}
 
       # JVM 옵션 — 컨테이너 메모리의 75% 사용 (기본 50% 보다 ↑)
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
