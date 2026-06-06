@@ -1,4 +1,4 @@
-# account-app CI/CD — backend Gradle build+test, 그리고 통과 시 VPS 배포.
+# account CI/CD — backend Gradle build+test, 그리고 통과 시 VPS 배포.
 #
 # 트리거: push to main / develop, 모든 PR. (배포는 main push 만)
 #
@@ -8,8 +8,8 @@
 # deploy 가 backend 통과에 의존(needs)하므로 빌드 깨진 커밋이 배포되지 않는다.
 #
 # 배포(deploy 잡) 필요 GitHub Secrets / Variables (Settings → Secrets and variables → Actions):
-#   Secrets:   DEPLOY_SSH_PRIVATE_KEY, DEPLOY_SSH_HOST
-#   Variables: DEPLOY_SSH_USER(=root), DEPLOY_SSH_PORT(=22), DEPLOY_PATH(=/root/account-app)
+#   Secrets:   SERVER_HOST, SERVER_USER, SERVER_PORT, SERVER_SSH_KEY
+#   Variables: DEPLOY_PATH(=/root/account)
 #   ⚠ production 승인 게이트는 GitHub → Settings → Environments → production 에
 #     Required reviewer(본인) 등록 시 활성화된다. 미설정 시 승인 없이 즉시 배포.
 

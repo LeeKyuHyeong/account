@@ -120,7 +120,7 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 
 ## 5. 주요 커맨드
 
-전제: 프로젝트 루트 = `D:\account-app`. PowerShell 또는 bash 모두 가능. Gradle 명령은 wrapper (`./gradlew`) 사용.
+전제: 프로젝트 루트 = `D:\account`. PowerShell 또는 bash 모두 가능. Gradle 명령은 wrapper (`./gradlew`) 사용.
 
 ### 부팅 / 셋업
 

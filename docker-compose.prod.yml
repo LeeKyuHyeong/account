@@ -1,4 +1,4 @@
-# account-app 운영 stack (docs/account.md §5.3).
+# account 운영 stack (docs/account.md §5.3).
 #
 # 사용 흐름 (VPS 에서):
 #   1. .env.prod 파일 작성 (시크릿 채움) — .env.prod.example 참고

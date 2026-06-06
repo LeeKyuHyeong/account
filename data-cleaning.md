@@ -1,7 +1,7 @@
 # 운영 DB 데이터 클리닝 (dev 시드 전체 제거)
 
 > ⚠ **운영(production) 데이터 삭제 절차 — 비가역.** 반드시 §0 백업 후 진행.
-> 대상: VPS 의 `account-app-mariadb-prod` 컨테이너 `account` 스키마.
+> 대상: VPS 의 `account-db` 컨테이너 `account` 스키마.
 > **상태: 아직 미적용 (2026-06-03 기준).**
 
 ## 배경
@@ -31,7 +31,7 @@ Flyway 시드(`V2__seed_dev` + `V3__seed_dev_bcrypt_passwords`)가 운영 DB 에
 ## 0. 백업 (필수)
 
 ```bash
-docker exec account-app-mariadb-prod sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" account' \
+docker exec account-db sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" account' \
   > /root/account-backup-$(date +%F).sql
 ls -lh /root/account-backup-*.sql      # 파일 생성 확인
 ```
@@ -41,7 +41,7 @@ ls -lh /root/account-backup-*.sql      # 파일 생성 확인
 삭제 대상이 가구 1·2 + 유저 1~4 뿐이고, 본인 실 가구/유저는 그 밖(id ≥ 3 / ≥ 5)인지 **눈으로 검증**한다.
 
 ```bash
-docker exec -it account-app-mariadb-prod mariadb -u root -p account
+docker exec -it account-db mariadb -u root -p account
 ```
 ```sql
 SELECT id, name, owner_user_id FROM households ORDER BY id;
@@ -85,7 +85,7 @@ SELECT (SELECT COUNT(*) FROM households WHERE id IN (1,2)) AS seed_households_le
 ## 복구 (문제 시)
 
 ```bash
-docker exec -i account-app-mariadb-prod sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" account' \
+docker exec -i account-db sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" account' \
   < /root/account-backup-YYYY-MM-DD.sql
 ```
 

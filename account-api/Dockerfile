@@ -4,7 +4,7 @@
 #   1. build — JDK 21 alpine 에서 ./gradlew :account-api:bootJar 실행
 #   2. runtime — JRE 21 alpine 에서 실행 (이미지 크기 ↓, attack surface ↓)
 #
-# 컨텍스트: 루트(D:/account-app) 에서 빌드 한다.
+# 컨텍스트: 루트(D:/account) 에서 빌드 한다.
 #   docker build -f account-api/Dockerfile -t account-api:latest .
 #
 # 가상 스레드 (Loom) 는 application.yml 의 spring.threads.virtual.enabled: true 로
