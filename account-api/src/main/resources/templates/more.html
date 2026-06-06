@@ -35,6 +35,10 @@
         <div class="toss-list-row__main"><span class="toss-list-row__title">가구 설정</span></div>
         <span class="toss-list-row__sub">›</span>
       </a>
+      <a th:href="@{/web/sysadmin}" class="toss-list-row" sec:authorize="hasRole('SYSADMIN')">
+        <div class="toss-list-row__main"><span class="toss-list-row__title">앱 관리</span></div>
+        <span class="toss-list-row__sub">›</span>
+      </a>
     </div>
 
     <div class="toss-card toss-card--flush mb-3">

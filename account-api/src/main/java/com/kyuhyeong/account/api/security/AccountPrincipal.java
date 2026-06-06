@@ -5,6 +5,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,17 +28,21 @@ public final class AccountPrincipal implements OAuth2User, Serializable {
     private final Long activeHouseholdId;
     private final String role;
     private final String nickname;
+    /** 앱 관리자 여부 — 카카오 providerUserId 화이트리스트({@link SysAdminProperties}). 가구 role 과 독립. */
+    private final boolean sysAdmin;
     private final Map<String, Object> attributes;
 
     public AccountPrincipal(Long userId,
                             Long activeHouseholdId,
                             String role,
                             String nickname,
+                            boolean sysAdmin,
                             Map<String, Object> attributes) {
         this.userId = userId;
         this.activeHouseholdId = activeHouseholdId;
         this.role = role;
         this.nickname = nickname;
+        this.sysAdmin = sysAdmin;
         this.attributes = attributes;
     }
 
@@ -57,6 +62,10 @@ public final class AccountPrincipal implements OAuth2User, Serializable {
         return nickname;
     }
 
+    public boolean isSysAdmin() {
+        return sysAdmin;
+    }
+
     @Override
     public Map<String, Object> getAttributes() {
         return attributes;
@@ -64,8 +73,16 @@ public final class AccountPrincipal implements OAuth2User, Serializable {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 가구 미가입(온보딩 전) 은 권한 없음 — OWNER/MEMBER 게이트에 걸리지 않고 온보딩으로만 유도.
-        return role == null ? List.of() : List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        // 가구 미가입(온보딩 전) 은 가구 role 권한 없음 — OWNER/MEMBER 게이트에 걸리지 않고 온보딩으로만 유도.
+        // ROLE_SYSADMIN 은 가구와 무관한 앱 전역 권한이라 role 유무와 독립으로 부여.
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        if (role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+        }
+        if (sysAdmin) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_SYSADMIN"));
+        }
+        return List.copyOf(authorities);
     }
 
     /** OAuth2User 식별자 — userId 문자열. (이메일/username 개념 없음.) */
