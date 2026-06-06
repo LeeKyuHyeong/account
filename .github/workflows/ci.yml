@@ -73,10 +73,10 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host:     ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ vars.DEPLOY_SSH_USER }}
-          port:     ${{ vars.DEPLOY_SSH_PORT }}
-          key:      ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port:     ${{ secrets.SERVER_PORT }}
+          key:      ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
             cd ${{ vars.DEPLOY_PATH }}
