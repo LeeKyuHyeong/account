@@ -9,14 +9,14 @@
 # 차이점 (개발용 docker-compose.yml 대비):
 #   - MariaDB 가 호스트에 노출 X (compose 내부 네트워크 전용)
 #   - account-api 는 127.0.0.1:8085 에만 바인딩 (외부 직접 접근 차단, nginx 만 진입점)
-#   - 영수증 저장은 /var/lib/account-app/receipts 호스트 볼륨
-#   - DB 데이터도 /var/lib/account-app/mariadb (개발과 분리)
+#   - 영수증 저장은 /var/lib/account/receipts 호스트 볼륨
+#   - DB 데이터도 /var/lib/account/mariadb (개발과 분리)
 #   - restart 정책 always (재부팅 후 자동 기동)
 
 services:
   mariadb:
     image: mariadb:11.4
-    container_name: account-app-mariadb-prod
+    container_name: account-db
     restart: always
     environment:
       TZ: Asia/Seoul  # 컨테이너 시스템 시각(로그 등). 세션 기본존은 아래 --default-time-zone 이 담당
@@ -25,7 +25,7 @@ services:
       MARIADB_USER: ${ACCOUNT_DB_USER:-account}
       MARIADB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?required}
     volumes:
-      - /var/lib/account-app/mariadb:/var/lib/mysql
+      - /var/lib/account/mariadb:/var/lib/mysql
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -48,8 +48,8 @@ services:
     build:
       context: .
       dockerfile: account-api/Dockerfile
-    image: account-app/account-api:latest
-    container_name: account-app-api-prod
+    image: account/account-api:latest
+    container_name: account-api
     restart: always
     depends_on:
       mariadb:
@@ -91,7 +91,7 @@ services:
       # JVM 옵션 — 컨테이너 메모리의 75% 사용 (기본 50% 보다 ↑)
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     volumes:
-      - /var/lib/account-app/receipts:/mnt/data/receipts
+      - /var/lib/account/receipts:/mnt/data/receipts
     # 외부 직접 접근 차단 — 호스트 nginx 만 127.0.0.1:8085 으로 진입.
     # 호스트 8085 = 기존 8080 portfolio / 8081 shop / 8082 game / 8083 api / 8084 itsm 다음 빈 포트.
     # (컨테이너 내부는 8080 그대로. host:container = 8085:8080)
