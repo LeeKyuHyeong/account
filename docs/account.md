@@ -1,8 +1,8 @@
-# Account-App
+# Account
 
 > 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
-**Repo**: <https://github.com/LeeKyuHyeong/account-app>
+**Repo**: <https://github.com/LeeKyuHyeong/account>
 **현재 페이즈**: `운영 — account.kyuhyeong.com 배포 완료 + 카카오 OAuth2 가입/온보딩 가동` (☞ [TODO.md](../TODO.md))
 **Last updated**: 2026-06-04
 
@@ -730,7 +730,7 @@ Conventional Commits 형식:
 - **OS**: CentOS / RHEL 계열
 - **기존 서비스 도메인**: shop/game/itsm/api.kyuhyeong.com (각각 다른 Docker 컨테이너)
 - **운영 중 (2026-05-27~)**: `account.kyuhyeong.com` — 호스트 nginx → `127.0.0.1:8085` → `account-api` 컨테이너. CD: GitHub Actions `ci.yml` 의 `deploy` 잡 (main push → backend 통과 후 → `production` 환경 → SSH `git pull` + `docker compose up -d account-api`)
-- **MariaDB (운영)**: `account-app-mariadb-prod` — 호스트 포트 3311 노출 (2026-06-02, 외부 관리/조회용; 0.0.0.0 바인드라 VPS 방화벽에서 관리자 IP 로 제한할 것). 시드 정리 절차는 [`data-cleaning.md`](../data-cleaning.md)
+- **MariaDB (운영)**: `account-db` — 호스트 포트 3311 노출 (2026-06-02, 외부 관리/조회용; 0.0.0.0 바인드라 VPS 방화벽에서 관리자 IP 로 제한할 것). 시드 정리 절차는 [`data-cleaning.md`](../data-cleaning.md)
 - **MariaDB (로컬 dev)**: `docker compose up -d` → 호스트 포트 3305 (3306 은 mysqld 점유 회피)
 - **nginx**: 이미 reverse proxy 셋업됨, account 서브도메인 server block 추가됨
 - **SSL**: certbot 이미 셋업, account.kyuhyeong.com 인증서 발급 완료

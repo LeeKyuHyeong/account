@@ -1,4 +1,4 @@
-# account-app 로컬 개발용 MariaDB.
+# account 로컬 개발용 MariaDB.
 #
 # 운영 stack 은 별도 (Week 6 에서 nginx + app 컨테이너와 함께 정의).
 # 본 파일은 개발 PC 에서 `./gradlew :account-api:bootRun` 직전에
@@ -11,7 +11,7 @@
 services:
   mariadb:
     image: mariadb:11.4
-    container_name: account-app-mariadb
+    container_name: account-db
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${ACCOUNT_DB_ROOT_PASSWORD:-rootlocal}

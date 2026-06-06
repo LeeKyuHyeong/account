@@ -1,4 +1,4 @@
-# Account-App TODO
+# Account TODO
 
 > 앱은 **Thymeleaf SSR 단일 구조로 운영 중** (account.kyuhyeong.com) + CI/CD 가동.
 > Flutter→SSR 마이그레이션(M0~M4)은 완료. 이 파일은 이제 **앞으로 할 일** 백로그다 —

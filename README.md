@@ -1,8 +1,8 @@
-# Account-App
+# Account
 
 부부/가구 단위 가계부 앱. 영수증 사진을 찍으면 Claude Vision API가 OCR + 카테고리 자동 분류 후 저장한다. Multi-tenant(가구 단위) 구조로 처음부터 설계되어 추후 가까운 인원(20명 내외)으로의 확장이 가능.
 
-**Repo**: <https://github.com/LeeKyuHyeong/account-app>
+**Repo**: <https://github.com/LeeKyuHyeong/account>
 **현재 상태**: Thymeleaf SSR 단일 구조로 운영 배포 + CI/CD 가동 중 (Flutter/JWT/REST 레거시는 M4 에서 제거 완료). 상세는 [`TODO.md`](TODO.md)
 
 ## 설계 / 작업 지시서
