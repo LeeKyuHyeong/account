@@ -139,6 +139,49 @@ class RecurringTransactionServiceTest {
         assertThat(req.getValue().occurredAt()).isEqualTo(LocalDate.of(2026, 4, 30).atTime(12, 0));
     }
 
+    // ─── runDueAcrossHouseholds (스케줄러 경로) ──────────────────
+
+    @Test
+    @DisplayName("runDueAcrossHouseholds — 한 가구 실패해도 다음 가구 계속 + failedHouseholds 카운트")
+    void acrossCountsFailuresAndContinues() {
+        User owner2 = User.builder().id(2L).build();
+        Household household2 = Household.builder().id(2L).owner(owner2).build();
+        when(householdRepository.findAll()).thenReturn(List.of(household, household2));
+        // 가구 1 은 조회 단계에서 실패, 가구 2 는 due 룰 1개 발화 — 컨텍스트로 분기
+        RecurringTransaction r2 = RecurringTransaction.builder()
+                .household(household2).category(category)
+                .amount(new BigDecimal("10000")).dayOfMonth(1).active(true)
+                .build();
+        ReflectionTestUtils.setField(r2, "id", 200L);
+        when(recurringRepository.findAllByActiveTrue()).thenAnswer(inv -> {
+            if (HouseholdContext.get() == 1L) {
+                throw new RuntimeException("boom");
+            }
+            return List.of(r2);
+        });
+
+        RecurringTransactionService.AcrossResult result =
+                service.runDueAcrossHouseholds(LocalDate.of(2026, 5, 25));
+
+        assertThat(result.fired()).isEqualTo(1);
+        assertThat(result.failedHouseholds()).isEqualTo(1);
+        verify(transactionService).create(any(), eq(2L));
+    }
+
+    @Test
+    @DisplayName("runDueAcrossHouseholds — 전 가구 정상이면 failedHouseholds=0")
+    void acrossAllOk() {
+        when(householdRepository.findAll()).thenReturn(List.of(household));
+        RecurringTransaction r = rule(100L, 25, null);
+        when(recurringRepository.findAllByActiveTrue()).thenReturn(List.of(r));
+
+        RecurringTransactionService.AcrossResult result =
+                service.runDueAcrossHouseholds(LocalDate.of(2026, 5, 25));
+
+        assertThat(result.fired()).isEqualTo(1);
+        assertThat(result.failedHouseholds()).isZero();
+    }
+
     // ─── create 시 last_run 초기화 ─────────────────────────────
 
     @Test

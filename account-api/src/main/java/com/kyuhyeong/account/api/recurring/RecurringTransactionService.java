@@ -116,19 +116,25 @@ public class RecurringTransactionService {
 
     /**
      * 스케줄러용 — 전 가구 순회. 각 가구의 트랜잭션은 독립 ({@link #runDueForHousehold} 의 자체
-     * {@code @Transactional}) 이라 한 가구 실패가 다음 가구를 막지 않는다.
+     * {@code @Transactional}) 이라 한 가구 실패가 다음 가구를 막지 않는다. 실패 가구 수는
+     * 잡 실행 이력(job_runs)에 남기기 위해 결과로 반환한다.
      */
-    public int runDueAcrossHouseholds(LocalDate today) {
+    public AcrossResult runDueAcrossHouseholds(LocalDate today) {
         int total = 0;
+        int failed = 0;
         for (Household household : householdRepository.findAll()) {
             try {
                 total += runDueForHousehold(household.getId(), today);
             } catch (Exception e) {
+                failed++;
                 log.warn("Failed recurring run for household {}", household.getId(), e);
             }
         }
-        return total;
+        return new AcrossResult(total, failed);
     }
+
+    /** 전 가구 순회 결과 — 발화 거래 수 + 실패 가구 수. */
+    public record AcrossResult(int fired, int failedHouseholds) {}
 
     /**
      * 단일 가구 발화. 컨텍스트를 명시 설정/해제 — scheduler 처럼 web filter 가 없는 경로에서 호출

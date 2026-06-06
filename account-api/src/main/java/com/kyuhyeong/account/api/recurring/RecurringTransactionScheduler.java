@@ -1,5 +1,6 @@
 package com.kyuhyeong.account.api.recurring;
 
+import com.kyuhyeong.account.api.job.JobRunRecorder;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
  * 잡이 한 번만 트리거되므로 클러스터 락은 불필요 (현 인프라 = 단일 컨테이너).
  *
  * <p>잡 자체는 1초 안에 끝나므로 cron 표현식 정확도는 분 단위면 충분.
+ * 실행 결과는 {@link JobRunRecorder} 로 job_runs 에 적재 (앱 관리자 화면에서 확인).
  */
 @Component
 @RequiredArgsConstructor
@@ -22,14 +24,25 @@ public class RecurringTransactionScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(RecurringTransactionScheduler.class);
 
+    static final String JOB_NAME = "recurring-daily";
+
     private final RecurringTransactionService recurringService;
+    private final JobRunRecorder jobRunRecorder;
 
     /** 매일 05:00:00 KST. cron 필드: 초·분·시·일·월·요일. */
     @Scheduled(cron = "0 0 5 * * *", zone = "Asia/Seoul")
     public void runDaily() {
         LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
         log.info("Recurring scheduler tick — today={}", today);
-        int fired = recurringService.runDueAcrossHouseholds(today);
-        log.info("Recurring scheduler done — fired={} transactions", fired);
+        try {
+            RecurringTransactionService.AcrossResult result = recurringService.runDueAcrossHouseholds(today);
+            jobRunRecorder.record(JOB_NAME, result.failedHouseholds() == 0,
+                    "fired=" + result.fired() + ", failedHouseholds=" + result.failedHouseholds());
+            log.info("Recurring scheduler done — fired={} transactions, failedHouseholds={}",
+                    result.fired(), result.failedHouseholds());
+        } catch (Exception e) {
+            jobRunRecorder.record(JOB_NAME, false, e.getClass().getSimpleName() + ": " + e.getMessage());
+            log.error("Recurring scheduler failed", e);
+        }
     }
 }

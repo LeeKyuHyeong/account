@@ -25,7 +25,7 @@ Andrej Karpathy의 LLM 코딩 함정 관찰을 기반으로 함.
 
 ### 이 프로젝트에서의 적용 예시
 
-- **새 도메인 Entity 추가 시:** 가구 격리 대상인가? (`@Filter("householdFilter")` 적용 여부) — `User` / `Household` / `HouseholdMember` / `InviteCode` 만 비격리이며 나머지는 모두 `household_id` + Filter 가 필수. 임의로 빠뜨리면 격리 누수.
+- **새 도메인 Entity 추가 시:** 가구 격리 대상인가? (`@Filter("householdFilter")` 적용 여부) — `User` / `Household` / `HouseholdMember` / `InviteCode` / `PushSubscription` / `LoginLog` / `JobRun` 만 비격리(전역 식별·시스템 군)이며 나머지는 모두 `household_id` + Filter 가 필수. 임의로 빠뜨리면 격리 누수.
 - **세션 principal(`AccountPrincipal`) 필드 추가/변경 시:** `KakaoOAuth2UserService.loadUser` (카카오 user-info → principal 조립) + `SessionHouseholdContextFilter`(주입) + 온보딩 합류 후 `WebOnboardingController.refreshPrincipal`(세션 재저장) + 필요 시 `HouseholdContext` 까지 동기화. 한 곳만 고치지 말 것. (formLogin/`CustomUserDetails` 는 2026-06-02 카카오 OAuth2 단독 인증으로 대체됨.)
 - **영수증 분석 실패 보고 받으면:** 어느 layer 인지부터 확인 — `ReceiptStorage` (디스크 IO) / `ImageDownscaler` (Claude 전송 전 다운스케일 — 실패 시 원본 폴백이라 분석은 막지 않음) / `ReceiptAnalysisService` (Claude 호출+JSON 파싱) / 카테고리 매칭 (`ReceiptIngestionService.resolveCategory`) / `Transaction` insert. 추측 패치 금지 — **분류 품질 문제는 `data/receipts/` 의 원본 이미지를 직접 보고 판단** (2026-06-04 전자전표 머리말 오추출이 이 방식으로 해결된 전례). 사용자 수정 패턴은 `/web/receipts/analysis` 에 누적된다.
 - **새 SSR 화면 추가 시:** `Web*Controller` 컨벤션 — `record DTO + @ModelAttribute + @Valid + BindingResult`, 에러 시 `form` Map (원본값) + `errors` Map (필드 에러) 으로 재렌더. `th:field`/`@Setter` 안 씀. 인라인 편집 폼은 `budget.html` / `networth.html` 패턴 (`th:action` 으로 CSRF 자동 주입).
@@ -136,8 +136,9 @@ cp application-secret.yml.example application-secret.yml
 # MariaDB (호스트 포트 3305, 호스트 3306 은 기존 mysqld 점유)
 docker compose up -d
 
-# 백엔드 기동 — Flyway 가 V1~V7 자동 적용
-# (V5: PERSONAL→FREE 리네임, V6: 미사용 테이블 DROP, V7: 카카오 인증 필드 + invite_codes)
+# 백엔드 기동 — Flyway 가 V1~V9 자동 적용
+# (V5: PERSONAL→FREE 리네임, V6: 미사용 테이블 DROP, V7: 카카오 인증 필드 + invite_codes,
+#  V8: push_subscriptions, V9: login_logs + job_runs)
 ./gradlew :account-api:bootRun
 
 # 브라우저로 http://localhost:8085/login → "카카오톡으로 시작하기"
@@ -187,7 +188,7 @@ account-core   ←─── account-api ←─── (없음)
    └── account-batch    └── account-ai
 ```
 
-- **`account-core`**: 도메인 Entity (12개 — V7 에서 `InviteCode` 추가) + Repository + Multi-tenant 격리 본체 (`HouseholdContext`, `HouseholdFilterAspect`, Hibernate `@Filter`) + Flyway 마이그레이션 (V1~V7). **다른 어떤 `account-*` 모듈에도 의존 X** (`build.gradle.kts` 의 강한 정책).
+- **`account-core`**: 도메인 Entity (15개 — V8 `PushSubscription`, V9 `LoginLog`/`JobRun` 추가) + Repository + Multi-tenant 격리 본체 (`HouseholdContext`, `HouseholdFilterAspect`, Hibernate `@Filter`) + Flyway 마이그레이션 (V1~V9). **다른 어떤 `account-*` 모듈에도 의존 X** (`build.gradle.kts` 의 강한 정책).
 - **`account-ai`**: Claude Vision API 호출 + 프롬프트 조립 + JSON 파싱 + 전송 전 이미지 다운스케일(`ImageDownscaler`, Thumbnailator) + 429/529/5xx 재시도. 모델/토큰/타임아웃/재시도는 `ACCOUNT_CLAUDE_*` env 로 외부화 (기본 모델 `claude-sonnet-4-6`). **다른 어떤 `account-*` 모듈에도 의존 X**. `MerchantHistoryProvider` 같은 인터페이스만 외부에 공개.
 - **`account-api`**: **Thymeleaf SSR 컨트롤러** (`Web*Controller`, `/web/**`) + **Spring Security 세션 + 카카오 OAuth2** (`oauth2Login`, `KakaoOAuth2UserService` → `AccountPrincipal`) + 가구 온보딩 (생성/초대코드, `WebOnboardingController`) + 영수증 인제스천 흐름. `account-core` + `account-ai` 둘 다에 의존하는 유일한 모듈 — 어댑터 (예: `JpaMerchantHistoryProvider`) 는 이쪽에 배치. ~~REST 컨트롤러 + JWT 인증~~ 은 M4 (2026-05-27), ~~formLogin/BCrypt~~ 은 2026-06-02 카카오 전환에 제거됨.
 - **`account-batch`**: 영수증 단계적 압축/삭제 잡 계획만 — **현재 비어 있음**. (~~월말 집계 잡~~ 은 V6(2026-05-30)에서 제거 — 집계는 on-the-fly 라 불필요. 그전엔 `MonthlySummaryJob` 이 있었음.) `account-core` 에만 의존, `account-api` 를 의존하지 않음(역방향: `account-api` 가 본 모듈을 포함해 `@Scheduled` 잡을 같은 프로세스에서 기동). 반복 거래 스케줄러는 현재 잡이 1개라 `account-api/recurring/` 안에 거치 — 잡이 2개 이상 되면 본 모듈로 이전.
@@ -208,7 +209,7 @@ account-core   ←─── account-api ←─── (없음)
 
 핵심 보장: **`HouseholdContext` 미설정 상태에서 격리 엔티티를 조회하면 `-1` sentinel 로 필터가 켜져 0 rows 반환** (`HouseholdFilterAspect.NO_TENANT_SENTINEL`). 인증 단계 누수에 대한 두 번째 방어선이다 — 임의로 끄지 말 것.
 
-비격리 Entity (Filter 미적용): `User`, `Household`, `HouseholdMember`, `InviteCode`. 나머지 8개 도메인 Entity는 `@Filter("householdFilter")` 가 클래스에 적용되어 있다 — 비격리 엔티티는 코드로 `findByHouseholdId*` 가드 (가구 설정 멤버 조회 `AdminUserService` 의 검증 패턴). 초대코드는 가입 전(가구 컨텍스트 없음)에 코드로 직접 조회된다.
+비격리 Entity (Filter 미적용): `User`, `Household`, `HouseholdMember`, `InviteCode` + User 군 `PushSubscription`(V8)/`LoginLog`(V9, admin 전용 조회) + 시스템 전역 `JobRun`(V9). 나머지 8개 도메인 Entity는 `@Filter("householdFilter")` 가 클래스에 적용되어 있다 — 비격리 엔티티는 코드로 `findByHouseholdId*`/`findAllByUserId*` 가드 (가구 설정 멤버 조회 `AdminUserService` 의 검증 패턴). 초대코드는 가입 전(가구 컨텍스트 없음)에 코드로 직접 조회된다.
 
 ### 6.3 핵심 흐름
 
@@ -249,3 +250,9 @@ account-core   ←─── account-api ←─── (없음)
 - 오버엔지니어링으로 인한 재작성이 줄어든다 — 처음부터 단순하다.
 - 실수 *후*가 아니라 구현 *전*에 명확화 질문이 온다.
 - 깔끔하고 최소한의 PR — 지나가다가 하는 "개선"이 없다.
+
+## 서버 인프라 (SSOT 참조)
+
+- **서버/배포 인프라 SSOT: `D:\server-infra.md`** (로컬 전용, git 미추적 — 리포·운영서버에 없음)
+- 포트·도메인·방화벽·컨테이너 TZ 규칙(`Asia/Seoul` 의무)·배포 반영 매트릭스(푸시 시 서버 자동/수동 반영 범위)·트러블슈팅은 전부 그 문서 참조.
+- 리포별 `server-infra-*.md`는 폐지됨(2026-06-06). **인프라(compose/nginx/포트/배포) 변경 시 `D:\server-infra.md`를 함께 최신화할 것.**

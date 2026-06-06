@@ -30,12 +30,17 @@
         멤버 <span th:text="${h.memberCount}">2</span>명 ·
         생성 <span th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd')}">2026-01-15</span>
       </div>
-      <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <div class="d-flex justify-content-between align-items-baseline mb-1">
         <span style="color: var(--toss-text-muted); font-size: 13px;">이번 달 영수증 AI 분석</span>
         <span style="font-variant-numeric: tabular-nums; font-size: 13px;">
           <span th:text="${h.receiptsThisMonth}">0</span> /
           <span th:text="${h.unlimitedReceipts} ? '무제한' : ${h.receiptQuota}">10</span>회
         </span>
+      </div>
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span style="color: var(--toss-text-muted); font-size: 13px;">푸시 기기</span>
+        <span style="font-variant-numeric: tabular-nums; font-size: 13px;"
+              th:text="${h.pushDevices} + '대'">0대</span>
       </div>
       <form th:action="@{/web/sysadmin/plan}" method="post" class="d-flex gap-2">
         <input type="hidden" name="householdId" th:value="${h.id}">
@@ -45,6 +50,57 @@
         </select>
         <button class="btn toss-pill toss-pill--primary" type="submit">플랜 변경</button>
       </form>
+    </div>
+
+    <!-- ─── 잡 실행 현황 ─── -->
+    <div class="mb-2 mt-4">
+      <h2 class="toss-page-title" style="font-size: 18px;">잡 실행 현황</h2>
+      <p class="toss-page-subtitle">반복거래 05:00 · 푸시 다이제스트 21:00 · 월말 결산 매월 1일 09:00 (최근 15건)</p>
+    </div>
+    <div th:if="${#lists.isEmpty(jobRuns)}" class="toss-card mb-2"
+         style="font-size: 13px; color: var(--toss-text-muted);">
+      아직 실행 이력이 없어요.
+    </div>
+    <div class="toss-card toss-card--flush mb-3" th:unless="${#lists.isEmpty(jobRuns)}">
+      <div th:each="r : ${jobRuns}" class="d-flex justify-content-between align-items-center gap-2 py-2 px-3">
+        <div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--toss-text-strong);"
+               th:text="${r.jobName}">recurring-daily</div>
+          <div style="font-size: 12px; color: var(--toss-text-muted);" th:text="${r.detail}">fired=0</div>
+        </div>
+        <div class="text-end">
+          <span class="toss-badge"
+                th:classappend="${r.ok} ? 'toss-badge--primary' : 'toss-badge--neutral'"
+                th:text="${r.ok} ? 'OK' : '실패'">OK</span>
+          <div style="font-size: 12px; color: var(--toss-text-muted);"
+               th:text="${#temporals.format(r.ranAt, 'MM-dd HH:mm')}">06-06 05:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 접속 로그 ─── -->
+    <div class="mb-2 mt-4">
+      <h2 class="toss-page-title" style="font-size: 18px;">접속 로그</h2>
+      <p class="toss-page-subtitle">카카오 로그인 성공 이력 (최근 30건)</p>
+    </div>
+    <div th:if="${#lists.isEmpty(loginLogs)}" class="toss-card mb-2"
+         style="font-size: 13px; color: var(--toss-text-muted);">
+      아직 기록된 로그인이 없어요.
+    </div>
+    <div class="toss-card toss-card--flush mb-3" th:unless="${#lists.isEmpty(loginLogs)}">
+      <div th:each="l : ${loginLogs}" class="d-flex justify-content-between align-items-center gap-2 py-2 px-3">
+        <div style="min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--toss-text-strong);">
+            <span th:text="${l.userName}">본인</span>
+            <span style="font-weight: 400; color: var(--toss-text-muted);" th:text="${l.ip}">1.2.3.4</span>
+          </div>
+          <div style="font-size: 11px; color: var(--toss-text-muted); overflow: hidden;
+                      text-overflow: ellipsis; white-space: nowrap;"
+               th:text="${l.userAgent}">Mozilla/5.0</div>
+        </div>
+        <span style="font-size: 12px; color: var(--toss-text-muted); white-space: nowrap;"
+              th:text="${#temporals.format(l.at, 'MM-dd HH:mm')}">06-06 12:30</span>
+      </div>
     </div>
 
     <div class="d-grid gap-2 mt-3">
