@@ -1,12 +1,20 @@
 package com.kyuhyeong.account.api.web;
 
 import com.kyuhyeong.account.api.web.SysAdminService.HouseholdView;
+import com.kyuhyeong.account.api.web.SysAdminService.JobRunView;
+import com.kyuhyeong.account.api.web.SysAdminService.LoginView;
 import com.kyuhyeong.account.core.entity.Household;
 import com.kyuhyeong.account.core.entity.HouseholdMember;
+import com.kyuhyeong.account.core.entity.JobRun;
+import com.kyuhyeong.account.core.entity.LoginLog;
+import com.kyuhyeong.account.core.entity.PushSubscription;
 import com.kyuhyeong.account.core.entity.User;
 import com.kyuhyeong.account.core.enums.PlanType;
 import com.kyuhyeong.account.core.repository.HouseholdMemberRepository;
 import com.kyuhyeong.account.core.repository.HouseholdRepository;
+import com.kyuhyeong.account.core.repository.JobRunRepository;
+import com.kyuhyeong.account.core.repository.LoginLogRepository;
+import com.kyuhyeong.account.core.repository.PushSubscriptionRepository;
 import com.kyuhyeong.account.core.repository.ReceiptRepository;
 import com.kyuhyeong.account.core.tenant.HouseholdContext;
 import org.junit.jupiter.api.AfterEach;
@@ -47,6 +55,9 @@ class SysAdminServiceTest {
     @Mock HouseholdRepository householdRepository;
     @Mock HouseholdMemberRepository memberRepository;
     @Mock ReceiptRepository receiptRepository;
+    @Mock PushSubscriptionRepository pushSubscriptionRepository;
+    @Mock LoginLogRepository loginLogRepository;
+    @Mock JobRunRepository jobRunRepository;
 
     @InjectMocks SysAdminService service;
 
@@ -71,19 +82,28 @@ class SysAdminServiceTest {
                 .build();
     }
 
+    /** 멤버 1명 — toView 의 푸시 구독 집계가 user id 를 읽으므로 user 를 채운다. */
+    private static HouseholdMember member(long userId) {
+        return HouseholdMember.builder().user(User.builder().id(userId).build()).build();
+    }
+
     @Test
     @DisplayName("listHouseholds — 가구별 멤버 수·플랜·이번 달 영수증 사용량을 view 로 매핑")
     void listHouseholdsMapsFields() {
         when(householdRepository.findAll()).thenReturn(List.of(
                 household(1L, "우리집", PlanType.FREE, "본인"),
                 household(2L, "테스트가구", PlanType.PRO, "친구")));
-        when(memberRepository.findByHouseholdId(1L)).thenReturn(List.of(
-                HouseholdMember.builder().build(), HouseholdMember.builder().build()));
-        when(memberRepository.findByHouseholdId(2L)).thenReturn(List.of(
-                HouseholdMember.builder().build()));
+        when(memberRepository.findByHouseholdId(1L)).thenReturn(List.of(member(11L), member(12L)));
+        when(memberRepository.findByHouseholdId(2L)).thenReturn(List.of(member(21L)));
         // 호출 시점의 HouseholdContext 값 × 10 — 가구별 컨텍스트 전환 여부를 카운트로 노출
         when(receiptRepository.countByCreatedAtGreaterThanEqual(any()))
                 .thenAnswer(inv -> HouseholdContext.get() * 10);
+        // 가구 1 멤버(11,12)는 푸시 기기 3대, 가구 2 멤버(21)는 1대
+        when(pushSubscriptionRepository.findAllByUserIdIn(List.of(11L, 12L))).thenReturn(List.of(
+                PushSubscription.builder().build(), PushSubscription.builder().build(),
+                PushSubscription.builder().build()));
+        when(pushSubscriptionRepository.findAllByUserIdIn(List.of(21L))).thenReturn(List.of(
+                PushSubscription.builder().build()));
 
         List<HouseholdView> result = service.listHouseholds();
 
@@ -96,12 +116,56 @@ class SysAdminServiceTest {
         assertThat(first.receiptsThisMonth()).isEqualTo(10L); // 가구 1 컨텍스트에서 집계
         assertThat(first.receiptQuota()).isEqualTo(PlanType.FREE.monthlyReceiptQuota());
         assertThat(first.unlimitedReceipts()).isFalse();
+        assertThat(first.pushDevices()).isEqualTo(3);
         assertThat(first.createdAt()).isEqualTo(LocalDate.of(2026, 1, 15));
 
         HouseholdView second = result.get(1);
         assertThat(second.memberCount()).isEqualTo(1);
         assertThat(second.receiptsThisMonth()).isEqualTo(20L); // 가구 2 컨텍스트에서 집계
         assertThat(second.unlimitedReceipts()).isTrue();
+        assertThat(second.pushDevices()).isEqualTo(1);
+    }
+
+    // ─── 접속 로그 / 잡 실행 현황 ────────────────────────────────
+
+    @Test
+    @DisplayName("listRecentLogins — 최근 로그인 이력을 유저명/IP/UA view 로 매핑")
+    void listRecentLoginsMapsFields() {
+        LoginLog log = LoginLog.builder()
+                .user(User.builder().id(7L).name("본인").build())
+                .ip("1.2.3.4")
+                .userAgent("Mozilla/5.0")
+                .createdAt(LocalDateTime.of(2026, 6, 6, 12, 30))
+                .build();
+        when(loginLogRepository.findTop30ByOrderByIdDesc()).thenReturn(List.of(log));
+
+        List<LoginView> result = service.listRecentLogins();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).userName()).isEqualTo("본인");
+        assertThat(result.get(0).ip()).isEqualTo("1.2.3.4");
+        assertThat(result.get(0).userAgent()).isEqualTo("Mozilla/5.0");
+        assertThat(result.get(0).at()).isEqualTo(LocalDateTime.of(2026, 6, 6, 12, 30));
+    }
+
+    @Test
+    @DisplayName("listRecentJobRuns — 최근 잡 실행 결과를 view 로 매핑")
+    void listRecentJobRunsMapsFields() {
+        JobRun run = JobRun.builder()
+                .jobName("recurring-daily")
+                .ok(true)
+                .detail("fired=3, failedHouseholds=0")
+                .ranAt(LocalDateTime.of(2026, 6, 6, 5, 0))
+                .build();
+        when(jobRunRepository.findTop15ByOrderByIdDesc()).thenReturn(List.of(run));
+
+        List<JobRunView> result = service.listRecentJobRuns();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).jobName()).isEqualTo("recurring-daily");
+        assertThat(result.get(0).ok()).isTrue();
+        assertThat(result.get(0).detail()).isEqualTo("fired=3, failedHouseholds=0");
+        assertThat(result.get(0).ranAt()).isEqualTo(LocalDateTime.of(2026, 6, 6, 5, 0));
     }
 
     @Test

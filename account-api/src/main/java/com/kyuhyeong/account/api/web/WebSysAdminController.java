@@ -30,6 +30,8 @@ public class WebSysAdminController {
     public String households(Model model) {
         model.addAttribute("households", sysAdminService.listHouseholds());
         model.addAttribute("planTypes", planOptions());
+        model.addAttribute("jobRuns", sysAdminService.listRecentJobRuns());
+        model.addAttribute("loginLogs", sysAdminService.listRecentLogins());
         return "sysadmin/households";
     }
 

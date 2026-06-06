@@ -48,18 +48,23 @@ public class PushDigestService {
     private final TransactionRepository transactionRepository;
     private final PushSendService pushSendService;
 
-    /** 스케줄러용 — 전 가구 순회. 푸시 비활성(VAPID 미설정)이면 즉시 반환. */
-    public void sendDailyDigestAcrossHouseholds(LocalDate today) {
+    /** 스케줄러용 — 전 가구 순회. 푸시 비활성(VAPID 미설정)이면 즉시 (0, 0) 반환. */
+    public AcrossResult sendDailyDigestAcrossHouseholds(LocalDate today) {
         if (!pushSendService.isEnabled()) {
-            return;
+            return new AcrossResult(0, 0);
         }
+        int households = 0;
+        int failed = 0;
         for (Household household : householdRepository.findAll()) {
             try {
                 sendDailyDigestForHousehold(household.getId(), today);
+                households++;
             } catch (Exception e) {
+                failed++;
                 log.warn("Failed daily push digest for household {}", household.getId(), e);
             }
         }
+        return new AcrossResult(households, failed);
     }
 
     /** 단일 가구 다이제스트 — 컨텍스트 명시 설정/해제 (web filter 가 없는 스케줄러 경로). */
@@ -81,19 +86,27 @@ public class PushDigestService {
 
     // ─── 월간 결산 ────────────────────────────────────────────────
 
-    /** 스케줄러용 — 전 가구에 지난달 결산 푸시. 푸시 비활성이면 즉시 반환. */
-    public void sendMonthlyClosingAcrossHouseholds(YearMonth month) {
+    /** 스케줄러용 — 전 가구에 지난달 결산 푸시. 푸시 비활성이면 즉시 (0, 0) 반환. */
+    public AcrossResult sendMonthlyClosingAcrossHouseholds(YearMonth month) {
         if (!pushSendService.isEnabled()) {
-            return;
+            return new AcrossResult(0, 0);
         }
+        int households = 0;
+        int failed = 0;
         for (Household household : householdRepository.findAll()) {
             try {
                 sendMonthlyClosingForHousehold(household.getId(), month);
+                households++;
             } catch (Exception e) {
+                failed++;
                 log.warn("Failed monthly closing push for household {}", household.getId(), e);
             }
         }
+        return new AcrossResult(households, failed);
     }
+
+    /** 전 가구 순회 결과 — 처리 가구 수 + 실패 가구 수 (잡 실행 이력용). */
+    public record AcrossResult(int households, int failedHouseholds) {}
 
     /** 단일 가구 월 결산 — 컨텍스트 명시 설정/해제 (스케줄러 경로). */
     @Transactional
