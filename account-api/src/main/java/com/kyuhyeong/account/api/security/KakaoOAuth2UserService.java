@@ -40,6 +40,7 @@ public class KakaoOAuth2UserService extends DefaultOAuth2UserService {
     private final UserRepository userRepository;
     private final HouseholdMemberRepository memberRepository;
     private final DevKakaoLinkProperties devLinks;
+    private final SysAdminProperties sysAdminProperties;
 
     @Override
     @Transactional
@@ -66,7 +67,8 @@ public class KakaoOAuth2UserService extends DefaultOAuth2UserService {
             role = active.getRole().name();
         }
 
-        return new AccountPrincipal(user.getId(), activeHouseholdId, role, nickname, attributes);
+        boolean sysAdmin = sysAdminProperties.getKakaoIds().contains(providerUserId);
+        return new AccountPrincipal(user.getId(), activeHouseholdId, role, nickname, sysAdmin, attributes);
     }
 
     /** 매핑이 있으면 시드 유저에 연결(로컬 데이터 이어받기), 없으면 신규 카카오 유저 생성. */

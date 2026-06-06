@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
                         .requestMatchers("/web/plan/**").hasRole("OWNER")
+                        // 앱 관리자 — 카카오 providerUserId 화이트리스트 (SysAdminProperties → principal)
+                        .requestMatchers("/web/sysadmin/**").hasRole("SYSADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth
                         .loginPage("/login")

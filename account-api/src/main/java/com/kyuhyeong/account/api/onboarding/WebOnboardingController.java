@@ -117,7 +117,8 @@ public class WebOnboardingController {
                                   Long householdId,
                                   String role) {
         AccountPrincipal updated = new AccountPrincipal(
-                current.getUserId(), householdId, role, current.getNickname(), current.getAttributes());
+                current.getUserId(), householdId, role, current.getNickname(),
+                current.isSysAdmin(), current.getAttributes());
         OAuth2AuthenticationToken old =
                 (OAuth2AuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         OAuth2AuthenticationToken token = new OAuth2AuthenticationToken(

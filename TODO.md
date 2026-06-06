@@ -10,6 +10,7 @@
 ## 열린 항목 (TODO)
 
 ### 기능
+- [ ] **앱 관리자 화면 2단계** — ① 접속 로그 (카카오 로그인 성공 기록 — 신규 테이블 V9) ② 푸시 구독 현황 (가구·유저별 PushSubscription 수) ③ 스케줄러 실행 현황 (반복거래/푸시 다이제스트/월말 결산 잡의 최근 실행 결과)
 - [ ] **거래 검색 (상점명·메모)** — `transactions/list` 필터에 keyword 필드. `Specification` 에 LIKE %keyword% (merchant OR memo)
 - [ ] **구독 Phase 2 — 실결제 (유예)** — Toss/PortOne/Stripe 정기결제: 빌링키, 웹훅(갱신/실패), 결제 이력, 별도 `Subscription` 엔티티(기간/상태). 외부 PG 계정·시크릿·HTTPS 웹훅 필요
 
@@ -58,6 +59,7 @@
 - **기능 보강** (2026-05-28) — 관리자 페이지(`/web/admin`, OWNER 전용, 멤버 목록 + 비번 재설정), 카테고리 관리 UI(`/web/categories`, 삭제 안전 가드), 반복 거래(V4 + 매일 KST 05:00 스케줄러, 멱등)
 - **2026-05-30** — 구독 플랜 티어 Phase 1(FREE/FAMILY/PRO, 영수증 AI 월 한도 게이팅, V5 PERSONAL→FREE), 기간/연 결산(`/web/report`), 거래 CSV 내보내기(UTF-8 BOM), dead 도메인 정리(`monthly_summaries`·`wedding_items` + 월말집계 잡 제거, V6), 문서 전체 현행화
 - **2026-06-04** — **영수증 분석 안정화** (실영수증 e2e 검증): 서버측 다운스케일(`ImageDownscaler`/Thumbnailator, 1568px·3MB, EXIF 보정 — API 5MB 한도 + 비용 대응), 429/529/5xx 선형 백오프 재시도, temperature 0, `stop_reason=max_tokens` 잘림 감지(max-tokens 2048), connect/read 타임아웃 분리, `ACCOUNT_CLAUDE_*` env 외부화 + **기본 모델 sonnet-4-6**. 프롬프트: 전자전표/VAN사(Smartro) 머리말 제외 + 종이 전표 배치 규칙 + few-shot (실패 케이스를 `data/receipts/` 원본 이미지로 직접 디버깅 — confidence 0.4→0.9). **분석 정확도 이력 화면** `/web/receipts/analysis` (AI 원본 vs 저장값 필드별 비교 + 수정 횟수/7일 추이, on-the-fly 집계 — 프롬프트 튜닝 루프의 입력). 업로드 화면 카메라/갤러리 버튼 분리(`capture` 토글)
+- **2026-06-06** — **앱 관리자 화면 1단계** (`/web/sysadmin`): 카카오 providerUserId 화이트리스트(`account.admin.kakao-ids`, env/secret — DB 변경 없음) → 로그인 시 `AccountPrincipal.sysAdmin` 플래그 + `ROLE_SYSADMIN` 부여 (가구 role 과 독립, principal 직렬화 변경으로 배포 후 전원 재로그인 1회). 전체 가구 목록(가구주·멤버 수·플랜·이번 달 영수증 AI 사용량) + 가구별 플랜 수동 변경(`PlanService.changePlan` 재사용 — 실결제 유예 동안 유일한 업그레이드 경로). 가구 횡단 영수증 집계는 `HouseholdContext` 명시 set→count→원복 (반복거래 스케줄러 패턴, `SysAdminServiceTest` 로 전환/복원 검증). 더보기에 `sec:authorize="hasRole('SYSADMIN')"` 링크
 - **2026-06-02** — **카카오 OAuth2 로그인 전환**: formLogin/BCrypt → `oauth2Login`, `CustomUserDetails`→`AccountPrincipal`(OAuth2User), `KakaoOAuth2UserService`(user find/create + dev seed-link), V7(users provider 필드 + email/password_hash nullable, `invite_codes` 테이블). **가구 온보딩**(생성 / 초대코드 가입 + 기본 카테고리 시더, `WebOnboardingController` + `SessionHouseholdContextFilter` 온보딩 가드)으로 회원가입·초대 흐름 실현 → 기존 v1.1 유예 항목 해소. OWNER 초대코드 발급 UI(+ tap-to-copy), admin 비번재설정 제거, 하단탭 web-app 셸 + 카카오 랜딩/더보기. 리포트 지출 분포 차트 + 연도별 프리셋, 차트 만-단위 Y축 정리, 영수증 추출 개선(상점/결제수단/시간). CI+deploy 단일 워크플로우 병합, 운영 mariadb 호스트 3311 노출(0.0.0.0 + 방화벽 관리자 IP 제한) → (선택)DBeaver 접근 항목 대체
 
 ---

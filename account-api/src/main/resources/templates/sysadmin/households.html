@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/layout :: page('앱 관리', ~{::content})}">
+  <th:block th:fragment="content">
+
+    <div class="mb-3">
+      <h1 class="toss-page-title">앱 관리</h1>
+      <p class="toss-page-subtitle">전체 가구 현황 · 플랜 변경</p>
+    </div>
+
+    <!-- flash 메시지는 fragments/layout.html 공통 영역이 처리 -->
+
+    <div th:if="${#lists.isEmpty(households)}" class="toss-card mb-2"
+         style="font-size: 13px; color: var(--toss-text-muted);">
+      등록된 가구가 없어요.
+    </div>
+
+    <div th:each="h : ${households}" class="toss-card mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div style="font-weight: 700; color: var(--toss-text-strong); letter-spacing: -0.01em;">
+          <span th:text="${h.name}">우리집</span>
+          <span style="font-weight: 400; font-size: 12px; color: var(--toss-text-muted);"
+                th:text="'#' + ${h.id}">#1</span>
+        </div>
+        <span class="toss-pill" th:text="${h.planDisplayName}">FREE</span>
+      </div>
+      <div style="font-size: 12px; color: var(--toss-text-muted);" class="mb-2">
+        가구주 <span th:text="${h.ownerName}">본인</span> ·
+        멤버 <span th:text="${h.memberCount}">2</span>명 ·
+        생성 <span th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd')}">2026-01-15</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span style="color: var(--toss-text-muted); font-size: 13px;">이번 달 영수증 AI 분석</span>
+        <span style="font-variant-numeric: tabular-nums; font-size: 13px;">
+          <span th:text="${h.receiptsThisMonth}">0</span> /
+          <span th:text="${h.unlimitedReceipts} ? '무제한' : ${h.receiptQuota}">10</span>회
+        </span>
+      </div>
+      <form th:action="@{/web/sysadmin/plan}" method="post" class="d-flex gap-2">
+        <input type="hidden" name="householdId" th:value="${h.id}">
+        <select class="form-select form-select-sm" name="plan" style="max-width: 160px;">
+          <option th:each="pt : ${planTypes}" th:value="${pt.type}" th:text="${pt.displayName}"
+                  th:selected="${pt.type == h.planType}">FREE</option>
+        </select>
+        <button class="btn toss-pill toss-pill--primary" type="submit">플랜 변경</button>
+      </form>
+    </div>
+
+    <div class="d-grid gap-2 mt-3">
+      <a th:href="@{/web/home}" class="btn toss-cta toss-cta-secondary">홈으로</a>
+    </div>
+
+  </th:block>
+</th:block>
+</body>
+</html>
