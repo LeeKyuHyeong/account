@@ -30,6 +30,9 @@
   -->
   <link rel="manifest" th:href="@{/manifest.webmanifest}">
   <meta name="theme-color" content="#3182F6">
+  <!-- favicon — ₩ 픽토그램 (tools/generate-icons.py 와 동일 소스). SVG 우선, 구형 브라우저는 ico 폴백. -->
+  <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
+  <link rel="icon" sizes="48x48 32x32 16x16" th:href="@{/favicon.ico}">
   <link rel="apple-touch-icon" th:href="@{/icons/icon-180.png}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
