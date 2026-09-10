@@ -1,0 +1,31 @@
+# 줄바꿈(EOL) 정책
+#  - 저장소(index)에는 항상 LF 로 저장한다  -> core.autocrlf 설정 유무와 무관하게 diff 가 안정적이다.
+#  - 워킹트리 줄바꿈은 OS 기본값(Windows=CRLF)을 따르되, 아래 예외는 강제 고정한다.
+* text=auto
+
+# --- Windows 전용 스크립트: CRLF 필수 ---
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# --- Unix 전용: LF 필수 ---
+*.sh         text eol=lf
+gradlew      text eol=lf
+Dockerfile   text eol=lf
+*.Dockerfile text eol=lf
+
+# --- 바이너리 ---
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+*.otf  binary
+*.jar  binary
+*.zip  binary
+*.gz   binary
+*.pdf  binary
