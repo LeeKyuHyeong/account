@@ -253,7 +253,7 @@ account-core   ←─── account-api ←─── (없음)
 
 ## 서버 인프라 (SSOT 참조)
 
-- **서버/배포 인프라 SSOT: `D:\dev\career-infra-vps.md`** (career 저장소, private. 2026-09-08 서버 실측 기준). 이전 `D:\server-infra.md`·`D:\dev\server-infra.md`(2026-09-05)는 실측과 어긋나 **폐기됨**(career decisions 2026-09-08). 리포별 `server-infra-*.md`도 폐지(2026-06-06).
+- **서버/배포 인프라 SSOT: `D:\dev\career\03-infra\01-vps.md`** (career 저장소, private. 2026-09-08 서버 실측 기준). 이전 `D:\server-infra.md`·`D:\dev\server-infra.md`(2026-09-05)는 실측과 어긋나 **폐기됨**(career decisions 2026-09-08). 리포별 `server-infra-*.md`도 폐지(2026-06-06).
 - 포트·도메인·방화벽·컨테이너 TZ 규칙(`Asia/Seoul` 의무)·CI 시크릿 표준 이름·배포 반영 범위·트러블슈팅은 전부 그 문서 참조.
 - **인프라(compose/nginx/포트/배포/키) 변경 시 `01-vps.md`를 함께 최신화할 것.** 이 리포 고유 절차(Deploy key로 코드 수신, 시크릿 작성, 롤링 업데이트)는 `docs/deployment.md`.
 - 이 저장소는 **private**(2026-09-12 전환). 서버는 읽기 전용 Deploy key(`vps-account-readonly`)로 `git fetch` 한다 — `docs/deployment.md` §2.
