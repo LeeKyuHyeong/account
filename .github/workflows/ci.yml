@@ -18,6 +18,12 @@ name: CI / Deploy
 on:
   push:
     branches: [main, develop]
+    # 문서만 바뀐 푸시는 빌드·배포를 타지 않는다 (main push = 배포이므로).
+    # pull_request 에는 두지 않는다 — branch protection 이 Backend 체크를 요구하면 문서 PR 이 영원히 대기한다.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitattributes'
   pull_request:
     branches: [main, develop]
   workflow_dispatch:   # 수동 배포 트리거도 허용
