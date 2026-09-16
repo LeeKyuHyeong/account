@@ -31,10 +31,31 @@ mkdir -p /var/lib/account/{mariadb,receipts}
 
 ## 2. 코드 복사
 
+저장소가 **private**(2026-09-12 전환)이라 서버는 **읽기 전용 Deploy key** 로 받는다. HTTPS clone/fetch 는 인증 없이 거부된다 — 2026-09-16 배포가 `git fetch` 에서 `could not read Username for 'https://github.com'` 로 실패해 확인. 원격 이름도 옛 `account-app` 이 아니라 `account` 로 맞춘다.
+
 ```bash
-git clone https://github.com/LeeKyuHyeong/account.git
-cd account
-git checkout main
+# 1) 서버 키 — 기존 ~/.ssh/account_app_deploy 재사용. 없으면 생성
+ssh-keygen -t ed25519 -f ~/.ssh/account_app_deploy -C "account-vps-readonly" -N ""
+
+# 2) 공개키(.pub 만)를 GitHub → account → Settings → Deploy keys 에 read-only 로 등록
+#    (로컬 gh: gh repo deploy-key add <pub 파일> -R LeeKyuHyeong/account --title vps-account-readonly)
+
+# 3) SSH 별칭 — 다른 리포 키와 섞이지 않게 IdentitiesOnly
+cat >> ~/.ssh/config <<'SSHCFG'
+Host github.com-account
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/account_app_deploy
+  IdentitiesOnly yes
+SSHCFG
+
+# 4) 신규 clone, 또는 기존 clone 은 원격만 교체
+git clone git@github.com-account:LeeKyuHyeong/account.git account
+# git -C ~/account remote set-url origin git@github.com-account:LeeKyuHyeong/account.git
+
+# 5) 확인 — "Hi LeeKyuHyeong/account! You've successfully authenticated ..." 면 OK
+ssh -T git@github.com-account
+git -C ~/account fetch --prune
 ```
 
 ## 3. 시크릿 작성
