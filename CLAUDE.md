@@ -256,3 +256,35 @@ account-core   ←─── account-api ←─── (없음)
 - **서버/배포 인프라 SSOT: `D:\server-infra.md`** (로컬 전용, git 미추적 — 리포·운영서버에 없음)
 - 포트·도메인·방화벽·컨테이너 TZ 규칙(`Asia/Seoul` 의무)·배포 반영 매트릭스(푸시 시 서버 자동/수동 반영 범위)·트러블슈팅은 전부 그 문서 참조.
 - 리포별 `server-infra-*.md`는 폐지됨(2026-06-06). **인프라(compose/nginx/포트/배포) 변경 시 `D:\server-infra.md`를 함께 최신화할 것.**
+
+## 검증 설정
+
+> 전역 `~/.claude/CLAUDE.md`의 검증 규칙(AC → 검증 실행 → 기록)이 이 저장소에 적용될 때의 값. 검증 기록은 `docs/verification/`(2026-09-16 기준 아직 없음 — 첫 기록 시 `~/.claude/verification/templates.md` §1 구조로 생성).
+
+- 유형: 본인 작성·운영 중(account.kyuhyeong.com). 전역 onboarding §1 특성 테스트 절차 해당 없음.
+- 기술 스택: Java 21 · Spring Boot · Thymeleaf SSR · JPA + Flyway(V1~V9) · MariaDB · Gradle 멀티모듈(core/api/ai/batch, §6.1)
+- 빌드: `./gradlew build` (§5). 테스트 제외는 `-x test`
+- 전체 테스트: `./gradlew test` — 2026-09-16 기준 테스트 클래스 15개·`@Test` 71건, 전부 Mockito 단위 테스트(`@ExtendWith(MockitoExtension.class)`). DB·Docker 불필요. **통합 테스트 계층은 아직 없다**(Testcontainers 의존성만 선언, `@SpringBootTest`·`@DataJpaTest` 0건)
+- 부분 테스트: `./gradlew :account-api:test --tests "TransactionServiceTest"` — 모듈 지정 필수(§5)
+- 로컬 실행: `docker compose up -d`(MariaDB 3305) → `./gradlew :account-api:bootRun` → http://localhost:8085/login. `application-secret.yml` 필요(§5)
+- 사용자 시나리오 검증 방식: 수동 체크리스트(브라우저). 진입이 카카오 로그인뿐이라 Playwright 자동화 없음. 푸시 수신은 실기기 2대 필요(TODO.md)
+- 프로파일 차이: 로컬 = MariaDB 3305 + `account.dev.kakao-links` 시드 매핑 / 운영 = `docker-compose.prod.yml` + `.env.prod`, 실제 카카오 계정. 시드 가구·유저가 운영에도 남아 있음(TODO "운영 DB 시드 전체 제거" 미적용)
+- 테스트 계정(이름·권한만): owner1@example.com(OWNER, 우리집) · member1@example.com(MEMBER, 우리집) · owner2@example.com(OWNER, 테스트가구) · member2@example.com(MEMBER, 테스트가구). 카카오 providerUserId 매핑으로만 진입(§5)
+- 외부 연동과 Mock 여부: Claude API(영수증 분석) → 단위 테스트 Mockito(`ReceiptAnalysisServiceTest`), 실호출은 🙋 / 카카오 OAuth2 → 자동 테스트 없음, 수동 / Web Push(VAPID) → `PushSubscriptionServiceTest` 단위, 실수신은 운영 🙋
+- 배포 방식: `main` push → `ci.yml` build 성공 시 deploy job 이 VPS SSH → `docker compose -f docker-compose.prod.yml build/up account-api`. 배포 후 Smoke: `curl -I https://account.kyuhyeong.com/login` 200 + `docs/deployment.md` §6 절차
+- 검증 기록 위치: docs/verification/
+
+### P0 핵심 시나리오 (초안 — 개발자 확정 필요)
+1. 인증: 카카오 로그인 → 신규 사용자는 `/web/onboarding`(가구 생성/초대코드) → 기존 사용자는 홈
+2. 멀티테넌트 격리(§6.2): 다른 가구의 거래·설정에 URL 직접 접근 시 차단
+3. 거래: 수동 입력 → 확정 → 홈 요약·목록 반영 → 수정·소프트 삭제
+4. 영수증 AI 분석: 업로드 → DRAFT 생성 → 확정. 월 한도 카운트와 임계 푸시는 정확히 1회
+5. 스케줄: 반복 거래 자동 발화, 일일 요약(21:00 KST)·월간 결산(매월 1일 09:00 KST) 푸시
+
+P1: 푸시 구독/발송, 순자산·예산 배너, 초대코드 합류 · P2: 관리자 화면, 로그인 로그, job_runs · P3: 문구·CSS
+
+### 이 프로젝트만의 규칙
+- DB·트랜잭션이 걸린 변경은 Testcontainers + MariaDB 통합 테스트를 추가하거나(H2 금지, 위 "프로젝트 고유 규칙"), 못 하면 검증 기록에 🙋로 수동 절차를 남긴다. 단위 테스트만으로 ✅ 처리하지 않는다
+- 스키마 변경 = Flyway `V<n>__*.sql` 추가. 검증 기록 "DB·설정 변경"에 마이그레이션 번호를 적는다
+- 격리 대상 엔티티(§6.2)를 건드리면 AC [권한]에 "다른 가구 사용자" 케이스를 반드시 넣는다
+- 커밋 전 §5 시크릿 스캔. 검증 기록에도 키·토큰 값은 적지 않는다
