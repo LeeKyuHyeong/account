@@ -126,7 +126,7 @@ account:
     vapid:
       public-key: ${ACCOUNT_PUSH_VAPID_PUBLIC_KEY:}
       private-key: ${ACCOUNT_PUSH_VAPID_PRIVATE_KEY:}
-      subject: ${ACCOUNT_PUSH_VAPID_SUBJECT:mailto:<OWNER_EMAIL>}
+      subject: ${ACCOUNT_PUSH_VAPID_SUBJECT:https://account.kyuhyeong.com}
 
 logging:
   level:
