@@ -2,7 +2,7 @@
 - 일자: 2026-09-17
 - 유형: 수정
 - 우선순위: P2 (설정)
-- 판정: 조건부 (배포 후 운영 값·테스트 알림은 🙋)
+- 판정: 수용 가능 (배포·운영 값·테스트 알림 사용자 확인 2026-09-17)
 
 ## 1. 요청과 목적
 - 사용자가 원한 것: Web Push VAPID subject 에 개인 이메일·자리표시자가 쓰이지 않게 하고, 운영 `.env.prod` 값이 컨테이너에 전달되게 한다
@@ -12,10 +12,10 @@
 ## 2. Acceptance Criteria
 | # | 구분 | 조건 | 상태 | 근거 |
 |---|---|---|---|---|
-| 1 | 정상 | 운영 컨테이너에 `.env.prod` 의 `ACCOUNT_PUSH_VAPID_SUBJECT` 가 전달된다 | 🙋 | 배포 후 `printenv` |
+| 1 | 정상 | 운영 컨테이너에 `.env.prod` 의 `ACCOUNT_PUSH_VAPID_SUBJECT` 가 전달된다 | ✅ | 사용자 실행 `printenv` → `https://account.kyuhyeong.com` |
 | 2 | 예외 | `.env.prod` 에 값이 없어도 개인정보 없는 기본값으로 동작한다 | ✅ | compose `:-https://…` + yml 기본값 (빈 문자열이 기본값을 덮지 않도록 compose 쪽에도 기본값) |
 | 3 | 노출 | 저장소 어디에도 개인 이메일·자리표시자 subject 가 없다 | ✅ | `grep -rn "OWNER_EMAIL" --include=*.yml` → 0 |
-| 4 | 연쇄 | 푸시 발송(테스트 알림)이 계속 동작한다 | 🙋 | 알림 설정 화면 테스트 알림 |
+| 4 | 연쇄 | 푸시 발송(테스트 알림)이 계속 동작한다 | ✅ | 사용자 확인: 테스트 알림 수신 |
 
 ## 3. 변경 사항
 - `account-api/src/main/resources/application.yml` — subject 기본값 `mailto:<OWNER_EMAIL>` → `https://account.kyuhyeong.com`
@@ -31,15 +31,15 @@
 | 계층 | 명령/방법 | 결과 | 상태 |
 |---|---|---|---|
 | 정적 | `git diff --check`, placeholder grep | 이상 없음 / 0건 | ✅ |
-| 빌드·테스트 | `./gradlew build` | 로컬에 JDK 21 없음 → CI(`Backend (Gradle build + test)`)에서 실행 | 🙋 (Actions) |
-| 운영 | `docker exec account-api printenv ACCOUNT_PUSH_VAPID_SUBJECT` | 배포 후 확인 | 🙋 |
+| 빌드·테스트 | `./gradlew build` | 로컬에 JDK 21 없음 → CI(`Backend (Gradle build + test)`) 성공(사용자 Actions 확인) | ✅ |
+| 운영 | `docker exec account-api printenv ACCOUNT_PUSH_VAPID_SUBJECT` | `https://account.kyuhyeong.com` | ✅ |
 
 ## 6. 수동 확인 시나리오
 1. [전제] push 후 Actions 성공
 2. [행동] 서버에서 `docker exec account-api printenv ACCOUNT_PUSH_VAPID_SUBJECT`
 3. [기대] `.env.prod` 에 넣은 값이 출력됨
 4. [행동] 앱 알림 설정 화면에서 테스트 알림 → [기대] 수신
-- 결과: ☐ 통과 ☐ 실패
+- 결과: ☑ 통과 (2026-09-17 사용자)
 
 ## 7. checklist 점검
 - 점검함: 비밀값·개인정보 노출(없음), 설정 기본값 폴백(빈 문자열 대응)
