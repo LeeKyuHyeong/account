@@ -49,4 +49,15 @@ class AccountPrincipalTest {
     void onboardingNonAdminHasNoAuthorities() {
         assertThat(authorities(null, false)).isEmpty();
     }
+
+    @Test
+    @DisplayName("같은 유저의 두 로그인은 동등하다 — 활성 가구·역할이 달라도 (SessionRegistry 가 principal 을 Map 키로 쓴다)")
+    void sameUserIsEqualAcrossLogins() {
+        AccountPrincipal first = new AccountPrincipal(1L, 10L, "OWNER", "닉네임", false, Map.of("id", 12345L));
+        AccountPrincipal second = new AccountPrincipal(1L, 20L, "MEMBER", "새닉네임", true, Map.of("id", 12345L));
+        AccountPrincipal other = new AccountPrincipal(2L, 10L, "OWNER", "닉네임", false, Map.of("id", 67890L));
+
+        assertThat(second).isEqualTo(first).hasSameHashCodeAs(first);
+        assertThat(other).isNotEqualTo(first);
+    }
 }

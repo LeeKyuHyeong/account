@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 세션 인증 경로 (/web/**) 의 principal — 카카오 OAuth2 단독.
@@ -89,5 +90,22 @@ public final class AccountPrincipal implements OAuth2User, Serializable {
     @Override
     public String getName() {
         return String.valueOf(userId);
+    }
+
+    /**
+     * 유저 ID 기준 동등성. 로그인마다 새 인스턴스가 만들어지는데 Spring Security 의 SessionRegistry 는
+     * principal 을 Map 키로 쓴다 — 정의하지 않으면 같은 유저의 세션들을 서로 다른 사람으로 취급해
+     * 동시 세션 제한이나 "이 유저의 세션 만료" 가 조용히 동작하지 않는다 (quiz 에서 겪은 결함, 2026-09-18).
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AccountPrincipal other)) return false;
+        return userId != null && userId.equals(other.userId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(userId);
     }
 }

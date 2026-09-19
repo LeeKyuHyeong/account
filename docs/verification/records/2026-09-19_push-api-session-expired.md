@@ -38,7 +38,7 @@
 ## 5. 실행한 검증
 | 계층 | 명령/방법 | 결과 | 상태 |
 |---|---|---|---|
-| 빌드 + 전체 테스트 | `./gradlew build` | 성공, 16 클래스 77건(기존 71 + 신규 6) 실패 0 | ✅ |
+| 빌드 + 전체 테스트 | `./gradlew build` | 성공, 16 클래스 **78건**(기존 71 + 보안 체인 6 + principal 동등성 1) 실패 0 | ✅ |
 | 보안 체인 | `./gradlew :account-api:test --tests "*SecurityConfigEntryPointTest"` | 6 passed (수정 전 2건 실패 → 엔트리 포인트만 넣은 중간 단계 1건 실패 → 통과) | ✅ |
 | 화면 JS 로직 | Node 스크래치 하네스 — 템플릿의 실제 인라인 스크립트를 추출해 브라우저 API 스텁으로 실행. **저장소 밖** | 5 checks passed, 수정 전 템플릿(`git show main:`)에서는 1번에서 실패 | ✅ |
 | 시크릿 스캔 | CLAUDE.md §5 명령 | 출력 없음 | ✅ |
@@ -57,9 +57,13 @@
 ## 8. 발견된 문제와 조치
 - 위 1건. 추가한 테스트: `SecurityConfigEntryPointTest` 6건
 
+## 8-1. 함께 넣은 예방 조치 — `AccountPrincipal` 동등성
+- `AccountPrincipal` 에 `equals`/`hashCode`(유저 ID 기준) 추가. 지금은 `maximumSessions`·`SessionRegistry` 를 쓰지 않아 증상이 없지만, 붙이는 순간 quiz 와 같은 방식으로 조용히 무력화된다(로그인마다 새 인스턴스, 레지스트리는 principal 을 Map 키로 사용). O-002 의 "특정 사용자 세션 만료" 를 만들 때의 전제이기도 하다.
+- 테스트: `AccountPrincipalTest#sameUserIsEqualAcrossLogins` (수정 전 실패 확인). 전체 78건 통과.
+
 ## 9. 미검증 영역과 남은 위험
 - 실제 브라우저 확인(🙋 O-001), 운영 배포(⬜ O-001)
-- 같은 조사에서 나온 나머지: `AccountPrincipal` equals/hashCode(다음 작업), 멤버십·역할이 로그인 시점 스냅샷(O-002), `X-Forwarded-For` 첫 값 신뢰(O-003), 초대코드 무기한·합류 스로틀 없음(O-004), 미사용 `jjwt` 의존성(O-005)
+- 같은 조사에서 나온 나머지: 멤버십·역할이 로그인 시점 스냅샷(O-002), `X-Forwarded-For` 첫 값 신뢰(O-003), 초대코드 무기한·합류 스로틀 없음(O-004), 미사용 `jjwt` 의존성(O-005)
 
 ## 10. Regression 등록
 - R-001, R-002
