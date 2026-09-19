@@ -3,13 +3,28 @@ package com.kyuhyeong.account.api.config;
 import com.kyuhyeong.account.api.security.KakaoOAuth2UserService;
 import com.kyuhyeong.account.api.security.OnboardingAwareSuccessHandler;
 import com.kyuhyeong.account.api.security.SessionHouseholdContextFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+
+import java.io.IOException;
 
 /**
  * Spring Security 설정 — 세션 (SSR) 단일 체인, 카카오 OAuth2 단독 인증.
@@ -26,6 +41,8 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final RequestMatcher PUSH_API = new AntPathRequestMatcher("/web/push/**", "POST");
 
     @Bean
     public SecurityFilterChain webChain(HttpSecurity http,
@@ -55,8 +72,28 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
+                // 푸시 설정 화면의 fetch(POST /web/push/**) 는 로그인이 끝났으면 401 을 받는다 — 화면이 "로그인 만료" 를
+                // 구분해 안내할 수 있게. 세션이 끝나면 CSRF 토큰도 함께 사라져 실제로는 CsrfFilter 가 먼저 거부하므로
+                // (인증 검사보다 앞) 접근 거부 핸들러에서도 같은 기준으로 401/403 을 가른다.
+                // 그 밖의 요청은 기존 동작 그대로: 미인증은 /login 으로, 접근 거부는 403.
+                .exceptionHandling(ex -> ex
+                        .defaultAuthenticationEntryPointFor(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED), PUSH_API)
+                        .defaultAuthenticationEntryPointFor(
+                                new LoginUrlAuthenticationEntryPoint("/login"), AnyRequestMatcher.INSTANCE)
+                        .defaultAccessDeniedHandlerFor(SecurityConfig::denyPushApi, PUSH_API)
+                        .defaultAccessDeniedHandlerFor(new AccessDeniedHandlerImpl(), AnyRequestMatcher.INSTANCE))
                 .addFilterAfter(sessionHouseholdContextFilter, SecurityContextHolderFilter.class);
         return http.build();
+    }
+
+    /** 로그인하지 않은(세션이 끝난) 요청이면 401, 로그인했는데 거부된 것이면 403. */
+    private static void denyPushApi(HttpServletRequest request, HttpServletResponse response,
+                                    AccessDeniedException denied) throws IOException {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean loggedIn = auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken);
+        response.sendError(loggedIn ? HttpServletResponse.SC_FORBIDDEN : HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Bean

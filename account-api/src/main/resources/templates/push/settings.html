@@ -72,10 +72,19 @@
           return arr;
         }
 
-        function post(path, body) {
+        // 실패 응답을 성공으로 넘기지 않는다 — 세션이 끝난 뒤의 호출(401)은 로그인 화면으로 보낸다.
+        async function post(path, body) {
           var headers = { 'Content-Type': 'application/json' };
           headers[CSRF_HEADER] = CSRF_TOKEN;
-          return fetch(path, { method: 'POST', headers: headers, body: JSON.stringify(body || {}) });
+          var res = await fetch(path, { method: 'POST', headers: headers, body: JSON.stringify(body || {}) });
+          if (res.status === 401) {
+            setTimeout(function () { window.location.href = '/login'; }, 1500);
+            throw new Error('로그인이 만료됐어요. 다시 로그인해 주세요');
+          }
+          if (!res.ok) {
+            throw new Error('요청이 처리되지 않았어요 (' + res.status + ')');
+          }
+          return res;
         }
 
         async function refresh() {
@@ -98,51 +107,71 @@
         }
 
         enableBtn.addEventListener('click', async function () {
+          var sub = null;
           try {
             var perm = await Notification.requestPermission();
             if (perm !== 'granted') { refresh(); return; }
             var reg = await navigator.serviceWorker.register('/sw.js');
-            var sub = await reg.pushManager.subscribe({
+            sub = await reg.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
             await post('/web/push/subscribe', sub.toJSON());
             refresh();
           } catch (e) {
+            // 서버에 저장되지 않은 구독을 브라우저에만 남기면 다음에 "켜짐" 으로 보인다
+            if (sub) { try { await sub.unsubscribe(); } catch (ignored) { /* 이미 해제됨 */ } }
+            await refresh();
             setStatus('켜기 실패 — ' + e.message, false);
           }
         });
 
         disableBtn.addEventListener('click', async function () {
-          var reg = await navigator.serviceWorker.register('/sw.js');
-          var sub = await reg.pushManager.getSubscription();
-          if (sub) {
-            await post('/web/push/unsubscribe', { endpoint: sub.endpoint });
-            await sub.unsubscribe();
+          try {
+            var reg = await navigator.serviceWorker.register('/sw.js');
+            var sub = await reg.pushManager.getSubscription();
+            if (sub) {
+              await post('/web/push/unsubscribe', { endpoint: sub.endpoint });
+              await sub.unsubscribe();
+            }
+            refresh();
+          } catch (e) {
+            setStatus('끄기 실패 — ' + e.message, true);
           }
-          refresh();
         });
 
         testBtn.addEventListener('click', async function () {
-          var res = await post('/web/push/test');
-          var data = await res.json();
-          testBtn.textContent = data.sent > 0
-              ? '발송됨 (' + data.sent + '기기) — 알림을 확인하세요'
-              : '발송 실패 — 구독 상태를 확인하세요';
+          try {
+            var res = await post('/web/push/test');
+            var data = await res.json();
+            testBtn.textContent = data.sent > 0
+                ? '발송됨 (' + data.sent + '기기) — 알림을 확인하세요'
+                : '발송 실패 — 구독 상태를 확인하세요';
+          } catch (e) {
+            testBtn.textContent = '요청 실패 — ' + e.message;
+          }
           setTimeout(function () { testBtn.textContent = '테스트 알림 보내기'; }, 3000);
         });
 
         // 매일 21시 자동 발송되는 일일 요약(오늘 분석/확정 대기)을 즉시 받아보는 검증용
         digestBtn.addEventListener('click', async function () {
-          await post('/web/push/digest-now');
-          digestBtn.textContent = '요청됨 — 보낼 내용이 있으면 알림이 와요';
+          try {
+            await post('/web/push/digest-now');
+            digestBtn.textContent = '요청됨 — 보낼 내용이 있으면 알림이 와요';
+          } catch (e) {
+            digestBtn.textContent = '요청 실패 — ' + e.message;
+          }
           setTimeout(function () { digestBtn.textContent = '오늘 요약 지금 받기'; }, 3000);
         });
 
         // 매월 1일 9시 자동 발송되는 지난달 결산을 즉시 받아보는 검증용
         closingBtn.addEventListener('click', async function () {
-          await post('/web/push/closing-now');
-          closingBtn.textContent = '요청됨 — 지난달 거래가 있으면 알림이 와요';
+          try {
+            await post('/web/push/closing-now');
+            closingBtn.textContent = '요청됨 — 지난달 거래가 있으면 알림이 와요';
+          } catch (e) {
+            closingBtn.textContent = '요청 실패 — ' + e.message;
+          }
           setTimeout(function () { closingBtn.textContent = '지난달 결산 지금 받기'; }, 3000);
         });
 
