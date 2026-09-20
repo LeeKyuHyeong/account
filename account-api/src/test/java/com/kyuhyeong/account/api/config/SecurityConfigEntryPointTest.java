@@ -58,6 +58,14 @@ class SecurityConfigEntryPointTest {
         @PostMapping("/web/push/subscribe")
         @ResponseBody
         String subscribe() { return "{\"ok\":true}"; }
+
+        @GetMapping("/actuator/health")
+        @ResponseBody
+        String health() { return "{\"status\":\"UP\"}"; }
+
+        @GetMapping("/actuator/env")
+        @ResponseBody
+        String env() { return "{}"; }
     }
 
     @Configuration
@@ -133,6 +141,17 @@ class SecurityConfigEntryPointTest {
     @DisplayName("Accept 헤더가 없는 미인증 요청도 지금처럼 로그인 페이지로 보낸다 (푸시 API 밖은 동작 불변)")
     void otherRequests_withoutLogin_stillRedirectToLogin() throws Exception {
         mockMvc.perform(get("/web/home"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @DisplayName("컨테이너 HEALTHCHECK 는 로그인 없이 /actuator/health 를 부를 수 있다 — 그 밖의 actuator 경로는 열리지 않는다")
+    void actuatorHealth_isOpen_butNothingElseUnderActuator() throws Exception {
+        // 로그인 리다이렉트(302)가 오면 wget --spider 가 /login 의 200 을 따라가 "항상 healthy" 가 된다
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/env"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
     }

@@ -92,6 +92,16 @@ server:
   # 로그인 302 리다이렉트가 https 로 생성되도록 한다 (SSR + TLS 종단 nginx 필수).
   forward-headers-strategy: framework
 
+# Actuator — 컨테이너 HEALTHCHECK(docker-compose.prod.yml) 전용. health 하나만 연다.
+# 응답은 {"status":"UP"} 뿐이다(show-details 기본값 never — 구성 요소·DB 정보는 담기지 않는다).
+# 상태에는 DB 연결(db)·디스크(diskSpace)가 들어간다 — DB 에 못 붙으면 DOWN(503).
+# 외부에서는 호스트 nginx 가 /actuator 를 막는다 (infra/nginx 예시).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 # 영수증 이미지 저장 루트.
 #   개발: ./data/receipts (프로젝트 루트 기준, gitignored)
 #   운영: ACCOUNT_RECEIPTS_STORAGE_ROOT=/mnt/data/receipts 환경변수로 오버라이드

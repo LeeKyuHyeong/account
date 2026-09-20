@@ -20,6 +20,10 @@ server {
     # nginx 기본값 1MB 면 영수증 업로드가 413 으로 막힌다.
     client_max_body_size 12m;
 
+    # /actuator/health 는 컨테이너 HEALTHCHECK 전용 — 외부에는 열지 않는다.
+    # ⚠ 반드시 이 443 server 블록에 둔다. 80(리다이렉트) 블록에 넣으면 https 트래픽에 적용되지 않는다.
+    location /actuator { deny all; }
+
     location / {
         proxy_pass         http://127.0.0.1:8085;
         proxy_http_version 1.1;

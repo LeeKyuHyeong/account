@@ -29,6 +29,8 @@ dependencies {
     // 카카오 OAuth2 단독 인증 (formLogin 대체).
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    // 컨테이너 HEALTHCHECK 용 /actuator/health (DB 연결 포함). 노출은 health 하나뿐 — application.yml management.*
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     // SSR (Thymeleaf) — /web/** 라우트에서 사용. /api/** 는 기존 JSON 컨트롤러 유지.
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     // Thymeleaf 템플릿에서 sec:authorize / sec:authentication 사용.

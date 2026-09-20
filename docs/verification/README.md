@@ -4,5 +4,6 @@
 
 | 일자 | 기록 | 유형 | 우선순위 | 판정 |
 |---|---|---|---|---|
+| 2026-09-20 | [account-api 컨테이너 HEALTHCHECK](records/2026-09-20_api-healthcheck.md) | 기능 | P1 | 미검증 상태 |
 | 2026-09-19 | [세션 만료 후 푸시 "알림 켜기" 오표시](records/2026-09-19_push-api-session-expired.md) | 버그 | P1 | 수용 가능 |
 | 2026-09-17 | [VAPID subject 를 비개인 값으로](records/2026-09-17_vapid-subject.md) | 수정 | P2 | 수용 가능 |

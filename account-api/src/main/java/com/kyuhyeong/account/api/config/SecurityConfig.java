@@ -58,6 +58,8 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/favicon.ico", "/sw.js",
                                 "/manifest.webmanifest", "/icons/**",
                                 "/oauth2/**", "/login/oauth2/**").permitAll()
+                        // 컨테이너 HEALTHCHECK 가 로그인 없이 부른다. 본문은 {"status":...} 뿐, 외부는 nginx 가 차단.
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/web/admin/**").hasRole("OWNER")
                         .requestMatchers("/web/plan/**").hasRole("OWNER")
                         // 앱 관리자 — 카카오 providerUserId 화이트리스트 (SysAdminProperties → principal)
