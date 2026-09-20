@@ -2,7 +2,7 @@
 - 일자: 2026-09-20
 - 유형: 기능 (운영 감시)
 - 우선순위: P1 (인증 경로 매처에 1줄 추가 — 인증 자체의 동작은 바꾸지 않음)
-- 판정: 미검증 상태 — 자동 검증은 ✅ 이나 **Actuator 를 넣은 앱을 실제로 띄워 본 적이 없다**(§5). 로컬 기동 확인(§6-1) 뒤 조건부로 올린다
+- 판정: 조건부 — 자동 검증·로컬 기동 확인 ✅, 남은 것은 서버 nginx 1줄과 배포 후 확인(🙋)
 
 ## 1. 요청과 목적
 - 사용자가 원한 것: dashboard 가 HEALTHCHECK 결과를 판정에 넣게 됐으므로(dashboard records/2026-09-20), HEALTHCHECK 가 없던 `account-api` 에 DB 연결까지 보는 HEALTHCHECK 를 단다.
@@ -16,9 +16,9 @@
 |---|---|---|---|---|
 | 1 | 정상 | 로그인 없이 `GET /actuator/health` 가 200 이다 (302 로그인 리다이렉트면 wget 이 `/login` 200 을 따라가 **항상 healthy** 가 된다) | ✅ | `SecurityConfigEntryPointTest#actuatorHealth_isOpen_*` (허용 규칙을 빼면 실패하는 것 확인) |
 | 2 | 권한 | 그 밖의 `/actuator/**` 는 열리지 않는다 — 미인증이면 로그인으로 | ✅ | 같은 테스트 (`/actuator/env`) |
-| 3 | 노출 | 응답 본문은 `{"status":...}` 뿐 — 구성 요소·DB 정보 없음 | 🙋 | `show-details` 기본값(never)에 의존. §6-1 에서 본문 확인 |
-| 4 | 정상 | 앱이 Actuator 를 넣고 정상 기동한다 | 🙋 | §6-1 |
-| 5 | 예외 | DB 에 못 붙으면 `/actuator/health` 가 503 → 컨테이너 unhealthy | 🙋 | §6-1 3번 |
+| 3 | 노출 | 응답 본문은 `{"status":...}` 뿐 — 구성 요소·DB 정보 없음 | ✅ | 로컬 기동 2026-09-20: 본문 `{"status":"UP"}` |
+| 4 | 정상 | 앱이 Actuator 를 넣고 정상 기동한다 | ✅ | 로컬 `bootRun` 8.2초 기동, 로그 `Exposing 1 endpoint beneath base path '/actuator'`, `/actuator/env` 302 |
+| 5 | 예외 | DB 에 못 붙으면 `/actuator/health` 가 503 → 컨테이너 unhealthy | ✅ | 로컬: `docker compose stop mariadb` → `503 {"status":"DOWN"}`, 다시 켜면 `200 UP` 으로 복구 |
 | 6 | 노출 | 외부에서 `https://account.kyuhyeong.com/actuator/health` 는 403 | 🙋 | §6-2 (서버 nginx 에 1줄 추가 필요) |
 | 7 | 정상 | 배포 후 `account-api` 가 `healthy`, dashboard 카드 UP | 🙋 | §6-3 |
 | 8 | 연쇄 | 기존 화면·로그인·푸시 API 응답은 그대로 | ✅ | 전체 회귀 79건 |
@@ -42,7 +42,7 @@
 |---|---|---|---|
 | 재현(수정 전) | 허용 규칙을 뺀 상태로 `SecurityConfigEntryPointTest` | 새 테스트 1건 실패(302) | ✅ |
 | 빌드 + 전체 회귀 | `./gradlew test` | 79 passed (78 + 신규 1), 0 failed | ✅ |
-| 로컬 실행 | — | **미실행** — 작업 시점에 Docker Desktop 이 꺼져 있어 로컬 DB 없이 기동 불가. 이 저장소에는 `@SpringBootTest` 가 없어 자동 테스트로는 컨텍스트 기동을 확인하지 못한다 | ⬜ |
+| 로컬 실행 | `docker compose up -d` + `./gradlew :account-api:bootRun` → curl (2026-09-20, §6-1 1~3 전부) | 기동 ✅ · health 200 UP · env 302 · DB 중지 시 503 DOWN · 재기동 후 200 | ✅ |
 | 운영 | §6-2·6-3 | — | 🙋 |
 
 ## 6. 수동 확인 시나리오
@@ -67,7 +67,7 @@
 - 없음
 
 ## 9. 미검증 영역과 남은 위험
-- **앱을 실제로 띄워 보지 않았다.** account 는 무중단 배포가 아니라, Actuator 가 기동을 깨뜨리면 배포 즉시 사이트가 내려간다 → §6-1 통과 전에는 main 에 머지하지 않는다
+- 로컬 기동은 확인했으나 운영 컨테이너(alpine busybox `wget`)에서의 HEALTHCHECK 동작은 배포 후에야 볼 수 있다(§6-3). 실패해도 표시만 unhealthy 가 되고 서비스에는 영향 없다
 - 관찰(이번 범위 밖, O-003 과 같은 계열): `server.forward-headers-strategy: framework` — Spring 의 ForwardedHeaderFilter 가 클라이언트 IP 를 어떻게 정하는지는 O-003 작업에서 확인한다
 
 ## 10. Regression 등록
