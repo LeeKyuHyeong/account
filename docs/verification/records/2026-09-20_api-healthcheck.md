@@ -2,7 +2,7 @@
 - 일자: 2026-09-20
 - 유형: 기능 (운영 감시)
 - 우선순위: P1 (인증 경로 매처에 1줄 추가 — 인증 자체의 동작은 바꾸지 않음)
-- 판정: 조건부 — 자동 검증·로컬 기동 확인 ✅, 남은 것은 서버 nginx 1줄과 배포 후 확인(🙋)
+- 판정: 수용 가능 — 자동 검증·로컬 기동·서버 nginx·운영 배포 확인 ✅ (2026-09-20)
 
 ## 1. 요청과 목적
 - 사용자가 원한 것: dashboard 가 HEALTHCHECK 결과를 판정에 넣게 됐으므로(dashboard records/2026-09-20), HEALTHCHECK 가 없던 `account-api` 에 DB 연결까지 보는 HEALTHCHECK 를 단다.
@@ -19,8 +19,8 @@
 | 3 | 노출 | 응답 본문은 `{"status":...}` 뿐 — 구성 요소·DB 정보 없음 | ✅ | 로컬 기동 2026-09-20: 본문 `{"status":"UP"}` |
 | 4 | 정상 | 앱이 Actuator 를 넣고 정상 기동한다 | ✅ | 로컬 `bootRun` 8.2초 기동, 로그 `Exposing 1 endpoint beneath base path '/actuator'`, `/actuator/env` 302 |
 | 5 | 예외 | DB 에 못 붙으면 `/actuator/health` 가 503 → 컨테이너 unhealthy | ✅ | 로컬: `docker compose stop mariadb` → `503 {"status":"DOWN"}`, 다시 켜면 `200 UP` 으로 복구 |
-| 6 | 노출 | 외부에서 `https://account.kyuhyeong.com/actuator/health` 는 403 | 🙋 | §6-2 (서버 nginx 에 1줄 추가 필요) |
-| 7 | 정상 | 배포 후 `account-api` 가 `healthy`, dashboard 카드 UP | 🙋 | §6-3 |
+| 6 | 노출 | 외부에서 `https://account.kyuhyeong.com/actuator/health` 는 403 | ✅ | 개발자 SSH 2026-09-20: `account.conf` 443 블록(`location /` 앞)에 추가, 백업 `account.conf.bak-<시각>`, `nginx -t` 통과 → reload → `actuator=403`·`login=200`. 배포 후 외부에서도 403 |
+| 7 | 정상 | 배포 후 `account-api` 가 `healthy`, dashboard 카드 UP | ✅ | `c9d66aa` 배포(Actions run 35517624764 성공, 교체 중 502 약 20초). 개발자 SSH: `account-api Up 4 minutes (healthy)`. dashboard 카드 UP/running |
 | 8 | 연쇄 | 기존 화면·로그인·푸시 API 응답은 그대로 | ✅ | 전체 회귀 79건 |
 
 ## 3. 변경 사항
@@ -43,7 +43,7 @@
 | 재현(수정 전) | 허용 규칙을 뺀 상태로 `SecurityConfigEntryPointTest` | 새 테스트 1건 실패(302) | ✅ |
 | 빌드 + 전체 회귀 | `./gradlew test` | 79 passed (78 + 신규 1), 0 failed | ✅ |
 | 로컬 실행 | `docker compose up -d` + `./gradlew :account-api:bootRun` → curl (2026-09-20, §6-1 1~3 전부) | 기동 ✅ · health 200 UP · env 302 · DB 중지 시 503 DOWN · 재기동 후 200 | ✅ |
-| 운영 | §6-2·6-3 | — | 🙋 |
+| 운영 | §6-2·6-3 (2026-09-20) | nginx 403 · 배포 성공 · `/login` 200 · 컨테이너 healthy | ✅ |
 
 ## 6. 수동 확인 시나리오
 ### 6-1. 로컬 기동 (머지 전에 — 개발자 또는 Docker 가 켜져 있으면 에이전트)

@@ -9,4 +9,4 @@
 | O-003 | OPEN | Security | `LoginLogService.resolveClientIp` 가 `X-Forwarded-For` 첫 값을 그대로 신뢰 — 로그인 로그의 IP 위조 가능. 인가·차단에는 쓰이지 않아 영향은 감사 로그 한정 | 범위 밖 | nginx 가 XFF 를 덮어쓰는지 확인 후 결정 (itsm `ClientIpResolver` 참고) | 2026-09-19 | |
 | O-004 | OPEN | Onboarding | 초대코드가 만료 없이 발급(`InviteCodeService` `expiresAt = null`), `POST /web/onboarding/join` 스로틀 없음. 코드 공간 31^8 이라 실현성은 낮음 | 범위 밖 | 별도 결정 | 2026-09-19 | |
 | O-005 | OPEN | Build | 미사용 `jjwt` 의존성 잔존(M4 에서 JWT 제거) | 무관한 정리 | 별도 작업 | 2026-09-19 | |
-| O-006 | OPEN | Infra | account-api HEALTHCHECK(Actuator health): 로컬 기동 확인 완료(2026-09-20). 남은 것: 서버 nginx `location /actuator { deny all; }` 추가 / 배포 후 `healthy` 확인 | 서버 작업·배포 후 확인은 개발자 SSH | records/2026-09-20_api-healthcheck §6 | 2026-09-20 | |
+| O-006 | CLOSED | Infra | account-api HEALTHCHECK(Actuator health): 로컬 기동 확인 완료(2026-09-20). 남은 것: 서버 nginx `location /actuator { deny all; }` 추가 / 배포 후 `healthy` 확인 | 서버 작업·배포 후 확인은 개발자 SSH | records/2026-09-20_api-healthcheck §6 | 2026-09-20 | 로컬 기동·서버 nginx·배포 후 healthy 모두 확인 (2026-09-20), records/2026-09-20_api-healthcheck §2 |
