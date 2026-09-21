@@ -265,7 +265,7 @@ account-core   ←─── account-api ←─── (없음)
 - 유형: 본인 작성·운영 중(account.kyuhyeong.com). 전역 onboarding §1 특성 테스트 절차 해당 없음.
 - 기술 스택: Java 21 · Spring Boot · Thymeleaf SSR · JPA + Flyway(V1~V9) · MariaDB · Gradle 멀티모듈(core/api/ai/batch, §6.1)
 - 빌드: `./gradlew build` (§5). 테스트 제외는 `-x test`
-- 전체 테스트: `./gradlew test` — 2026-09-16 기준 테스트 클래스 15개·`@Test` 71건, 전부 Mockito 단위 테스트(`@ExtendWith(MockitoExtension.class)`). DB·Docker 불필요. **통합 테스트 계층은 아직 없다**(Testcontainers 의존성만 선언, `@SpringBootTest`·`@DataJpaTest` 0건)
+- 전체 테스트: `./gradlew test` — 2026-09-21 기준 테스트 클래스 16개·79건(api 63·core 4·ai 12), 전부 단위 테스트 — Mockito(`@ExtendWith(MockitoExtension.class)`) 10개, 순수 단위·MockMvc standalone(`SecurityConfigEntryPointTest`) 6개. DB·Docker 불필요. **통합 테스트 계층은 아직 없다**(Testcontainers 의존성만 선언, `@SpringBootTest`·`@DataJpaTest` 0건)
 - 부분 테스트: `./gradlew :account-api:test --tests "TransactionServiceTest"` — 모듈 지정 필수(§5)
 - 로컬 실행: `docker compose up -d`(MariaDB 3305) → `./gradlew :account-api:bootRun` → http://localhost:8085/login. `application-secret.yml` 필요(§5)
 - 사용자 시나리오 검증 방식: 수동 체크리스트(브라우저). 진입이 카카오 로그인뿐이라 Playwright 자동화 없음. 푸시 수신은 실기기 2대 필요(TODO.md)
