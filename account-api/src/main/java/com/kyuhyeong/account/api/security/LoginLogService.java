@@ -31,20 +31,6 @@ public class LoginLogService {
                 .build());
     }
 
-    /**
-     * 클라이언트 IP 추출 — X-Forwarded-For 첫 값 우선, 없으면 remoteAddr.
-     *
-     * <p>{@code forward-headers-strategy: framework}(ForwardedHeaderFilter) 는 URL 재구성만
-     * 담당하고 {@code getRemoteAddr()} 를 바꾸지 않으므로, 운영(nginx 뒤)에선 remoteAddr 가
-     * 프록시(127.0.0.1)로 나온다 — XFF 헤더를 직접 읽어야 실 클라이언트 IP.
-     */
-    public static String resolveClientIp(String xForwardedFor, String remoteAddr) {
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return remoteAddr;
-    }
-
     private static String truncate(String userAgent) {
         if (userAgent == null || userAgent.length() <= MAX_USER_AGENT_LENGTH) {
             return userAgent;

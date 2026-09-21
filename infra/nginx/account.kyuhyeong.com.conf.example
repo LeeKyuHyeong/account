@@ -29,7 +29,9 @@ server {
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        # 덮어쓴다 — 앱(forward-headers-strategy: framework)은 XFF 첫 값을 클라이언트 IP 로 믿는다.
+        # $proxy_add_x_forwarded_for(덧붙임)면 클라이언트가 보낸 위조값이 첫 자리에 남는다.
+        proxy_set_header   X-Forwarded-For   $remote_addr;
         # SSR: 세션 쿠키 / formLogin 302 리다이렉트가 https 로 생성되도록 (forward-headers-strategy).
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_set_header   Connection        "";

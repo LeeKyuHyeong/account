@@ -21,6 +21,10 @@ import java.io.IOException;
  * </ul>
  *
  * <p>접속 로그({@link LoginLogService})는 기록 실패가 로그인을 막지 않도록 try-catch.
+ *
+ * <p>IP 는 {@code getRemoteAddr()} — {@code forward-headers-strategy: framework}(ForwardedHeaderFilter) 가
+ * X-Forwarded-For 첫 값으로 바꿔 두고 XFF 헤더는 지운다. 위조 방지는 nginx 가 XFF 를
+ * {@code $remote_addr} 로 덮어쓰는 것에 달려 있다({@code infra/nginx/account.kyuhyeong.com.conf.example}).
  */
 @Component
 @RequiredArgsConstructor
@@ -47,9 +51,7 @@ public class OnboardingAwareSuccessHandler extends SimpleUrlAuthenticationSucces
 
     private void recordLogin(AccountPrincipal principal, HttpServletRequest request) {
         try {
-            String ip = LoginLogService.resolveClientIp(
-                    request.getHeader("X-Forwarded-For"), request.getRemoteAddr());
-            loginLogService.record(principal.getUserId(), ip, request.getHeader("User-Agent"));
+            loginLogService.record(principal.getUserId(), request.getRemoteAddr(), request.getHeader("User-Agent"));
         } catch (Exception e) {
             log.warn("Failed to record login log for user {}", principal.getUserId(), e);
         }

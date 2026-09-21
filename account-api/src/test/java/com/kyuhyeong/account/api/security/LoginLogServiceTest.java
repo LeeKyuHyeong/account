@@ -17,11 +17,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * {@link LoginLogService} 단위 테스트 — 로그인 성공 기록 + 클라이언트 IP 추출.
+ * {@link LoginLogService} 단위 테스트 — 로그인 성공 기록.
  *
- * <p>IP 추출 주의: {@code forward-headers-strategy: framework} 는 URL 재구성만 담당하고
- * {@code getRemoteAddr()} 를 바꾸지 않으므로, 운영(nginx 뒤)에선 X-Forwarded-For 첫 값을
- * 우선해야 실 클라이언트 IP 가 남는다.
+ * <p>클라이언트 IP 추출은 {@link OnboardingAwareSuccessHandlerTest} 가 ForwardedHeaderFilter 를 거쳐 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class LoginLogServiceTest {
@@ -71,26 +69,5 @@ class LoginLogServiceTest {
         verify(loginLogRepository).save(captor.capture());
         assertThat(captor.getValue().getIp()).isNull();
         assertThat(captor.getValue().getUserAgent()).isNull();
-    }
-
-    // ─── resolveClientIp ────────────────────────────────────────
-
-    @Test
-    @DisplayName("resolveClientIp — X-Forwarded-For 다중 값이면 첫 토큰 (실 클라이언트)")
-    void resolveTakesFirstForwardedToken() {
-        assertThat(LoginLogService.resolveClientIp("1.2.3.4, 10.0.0.1", "127.0.0.1"))
-                .isEqualTo("1.2.3.4");
-    }
-
-    @Test
-    @DisplayName("resolveClientIp — XFF 없으면 remoteAddr (로컬 직접 접속)")
-    void resolveFallsBackToRemoteAddr() {
-        assertThat(LoginLogService.resolveClientIp(null, "127.0.0.1")).isEqualTo("127.0.0.1");
-    }
-
-    @Test
-    @DisplayName("resolveClientIp — XFF 가 공백이면 remoteAddr")
-    void resolveIgnoresBlankForwardedHeader() {
-        assertThat(LoginLogService.resolveClientIp("  ", "127.0.0.1")).isEqualTo("127.0.0.1");
     }
 }
