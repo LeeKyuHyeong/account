@@ -4,7 +4,7 @@
 
 | 일자 | 기록 | 유형 | 우선순위 | 판정 |
 |---|---|---|---|---|
-| 2026-09-21 | [account D 구현 — 로그인 로그 IP·초대코드 만료·취소·jjwt](records/2026-09-21_account-d.md) | 수정 | P1 | 조건부(운영 반영 완료, 위조 헤더 실측 🙋 선택) |
+| 2026-09-21 | [account D 구현 — 로그인 로그 IP·초대코드 만료·취소·jjwt](records/2026-09-21_account-d.md) | 수정 | P1 | 수용 가능 |
 | 2026-09-21 | [account D 조사 — XFF·초대코드·jjwt (+ 웹앱 화면)](records/2026-09-21_account-d-investigation.md) | 조사 | P1 | 미검증 상태(구현 전, 결정 대기) |
 | 2026-09-20 | [account-api 컨테이너 HEALTHCHECK](records/2026-09-20_api-healthcheck.md) | 기능 | P1 | 수용 가능 |
 | 2026-09-19 | [세션 만료 후 푸시 "알림 켜기" 오표시](records/2026-09-19_push-api-session-expired.md) | 버그 | P1 | 수용 가능 |
