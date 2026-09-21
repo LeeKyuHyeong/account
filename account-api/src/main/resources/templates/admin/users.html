@@ -20,7 +20,7 @@
         </form>
       </div>
       <p style="font-size: 12px; color: var(--toss-text-muted);" class="mb-2">
-        새 멤버가 "초대코드 입력하기" 에서 이 코드를 입력하면 우리 가구에 합류해요. (코드를 탭하면 복사돼요)
+        새 멤버가 "초대코드 입력하기" 에서 이 코드를 입력하면 우리 가구에 합류해요. 코드는 발급 후 3일 동안 쓸 수 있어요. (코드를 탭하면 복사돼요)
       </p>
       <div th:if="${#lists.isEmpty(inviteCodes)}"
            style="font-size: 13px; color: var(--toss-text-muted);">
@@ -32,11 +32,16 @@
                 style="font-size: 16px; letter-spacing: 0.08em; cursor: pointer;"
                 th:attr="data-code=${ic.code}" th:text="${ic.code}">ABCD2345</code>
           <span class="ms-auto" style="font-size: 12px; color: var(--toss-text-muted);"
-                th:text="${#temporals.format(ic.createdAt, 'yyyy-MM-dd')}">2026-06-02</span>
+                th:text="${ic.expiresAt != null
+                      ? '만료 ' + #temporals.format(ic.expiresAt, 'MM-dd HH:mm') : '무기한'}">만료 06-05 12:00</span>
           <!-- 카카오톡 공유 — JS 키 미설정 환경(키 없음/도메인 미등록)에선 버튼 자체를 숨김 -->
           <button type="button" class="btn toss-pill kakao-invite" th:if="${!#strings.isEmpty(kakaoJsKey)}"
                   style="background: #FEE500; color: #191600; border: 0; font-weight: 700;"
                   th:attr="data-code=${ic.code}">카카오톡 초대</button>
+          <form method="post" th:action="@{/web/admin/invite/{id}/revoke(id=${ic.id})}" class="d-inline"
+                onsubmit="return confirm('이 초대코드를 취소할까요? 취소한 코드로는 더 이상 합류할 수 없어요.');">
+            <button class="toss-link-danger" type="submit">취소</button>
+          </form>
         </li>
       </ul>
     </div>

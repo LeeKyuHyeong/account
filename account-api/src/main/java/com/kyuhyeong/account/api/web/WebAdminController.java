@@ -8,12 +8,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * 가구 설정 페이지 (OWNER 전용) — 가구 멤버 목록 + 초대코드 발급.
+ * 가구 설정 페이지 (OWNER 전용) — 가구 멤버 목록 + 초대코드 발급·취소.
  *
  * <p>경로 접근 제어(OWNER)는 {@code SecurityConfig} 의 {@code /web/admin/**} → {@code hasRole("OWNER")}
  * 가 담당. 멤버 조회의 가구 격리는 {@link AdminUserService}, 초대코드 발급은 {@link InviteCodeService}.
@@ -45,6 +46,18 @@ public class WebAdminController {
     public String generateInvite(@AuthenticationPrincipal AccountPrincipal user, RedirectAttributes ra) {
         String code = inviteCodeService.generate(user.getActiveHouseholdId(), user.getUserId()).getCode();
         ra.addFlashAttribute("message", "초대코드가 발급되었습니다: " + code);
+        return "redirect:/web/admin";
+    }
+
+    @PostMapping("/web/admin/invite/{id}/revoke")
+    public String revokeInvite(@PathVariable Long id, @AuthenticationPrincipal AccountPrincipal user,
+                               RedirectAttributes ra) {
+        try {
+            inviteCodeService.revoke(user.getActiveHouseholdId(), id);
+            ra.addFlashAttribute("message", "초대코드를 취소했습니다.");
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
         return "redirect:/web/admin";
     }
 }
