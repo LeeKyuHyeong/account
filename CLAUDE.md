@@ -256,14 +256,14 @@ account-core   ←─── account-api ←─── (없음)
 - **서버/배포 인프라 SSOT: `D:\dev\career\03-infra\01-vps.md`** (career 저장소, private. 2026-09-08 서버 실측 기준). 이전 `D:\server-infra.md`·`D:\dev\server-infra.md`(2026-09-05)는 실측과 어긋나 **폐기됨**(career decisions 2026-09-08). 리포별 `server-infra-*.md`도 폐지(2026-06-06).
 - 포트·도메인·방화벽·컨테이너 TZ 규칙(`Asia/Seoul` 의무)·CI 시크릿 표준 이름·배포 반영 범위·트러블슈팅은 전부 그 문서 참조.
 - **인프라(compose/nginx/포트/배포/키) 변경 시 `01-vps.md`를 함께 최신화할 것.** 이 리포 고유 절차(Deploy key로 코드 수신, 시크릿 작성, 롤링 업데이트)는 `docs/deployment.md`.
-- 이 저장소는 **private**(2026-09-12 전환). 서버는 읽기 전용 Deploy key(`vps-account-readonly`)로 `git fetch` 한다 — `docs/deployment.md` §2.
+- 이 저장소는 **public**(2026-09-12 private 전환 → 2026-09-16 히스토리 재작성 후 public 재전환). 서버는 그대로 읽기 전용 Deploy key(`vps-account-readonly`)로 `git fetch` 한다 — `docs/deployment.md` §2.
 
 ## 검증 설정
 
 > 전역 `~/.claude/CLAUDE.md`의 검증 규칙(AC → 검증 실행 → 기록)이 이 저장소에 적용될 때의 값. 검증 기록은 `docs/verification/`(2026-09-16 기준 아직 없음 — 첫 기록 시 `~/.claude/verification/templates.md` §1 구조로 생성).
 
 - 유형: 본인 작성·운영 중(account.kyuhyeong.com). 전역 onboarding §1 특성 테스트 절차 해당 없음.
-- 기술 스택: Java 21 · Spring Boot · Thymeleaf SSR · JPA + Flyway(V1~V9) · MariaDB · Gradle 멀티모듈(core/api/ai/batch, §6.1)
+- 기술 스택: Java 21 · Spring Boot · Thymeleaf SSR · JPA + Flyway(V1~V9) · MariaDB · Gradle 멀티모듈(core/api/ai + 빈 batch 모듈, §6.1)
 - 빌드: `./gradlew build` (§5). 테스트 제외는 `-x test`
 - 전체 테스트: `./gradlew test` — 2026-09-21 기준 테스트 클래스 20개·91건(api 71·core 8·ai 12), 전부 단위 테스트 — Mockito(`@ExtendWith(MockitoExtension.class)`) 13개, 순수 단위·MockMvc standalone(`SecurityConfigEntryPointTest`) 7개. DB·Docker 불필요. **통합 테스트 계층은 아직 없다**(Testcontainers 의존성만 선언, `@SpringBootTest`·`@DataJpaTest` 0건)
 - 부분 테스트: `./gradlew :account-api:test --tests "TransactionServiceTest"` — 모듈 지정 필수(§5)

@@ -18,13 +18,13 @@
 |---|---|---|
 | `account-ai` | ✅ 운영 | Claude Vision API 통합, 영수증 OCR + 카테고리 분류 |
 | `account-api` | ✅ 운영 | Thymeleaf SSR 컨트롤러, 세션 인증(`SecurityConfig` 단일 webChain), 가구 격리 진입점 |
-| `account-core` | ✅ 운영 | Entity 11 + `@Filter` 적용 + `HouseholdContext` + `HouseholdFilterAspect` + Flyway(V1~V6) |
+| `account-core` | ✅ 운영 | Entity 15 + `@Filter` 적용 + `HouseholdContext` + `HouseholdFilterAspect` + Flyway(V1~V9) |
 | `account-batch` | ⏳ 비어 있음 | 영수증 단계적 압축/삭제 잡 (계획만). 반복 거래 스케줄러는 단일 잡이라 `account-api/recurring/` 에 거침 |
 | `docs/` | ✅ 본 문서 | 설계 + 작업 지시서 |
 
 ## 구현 현황 (요약)
 
-홈 · 거래(목록/입력/수정/soft-delete) · 영수증 AI 분석 · 카테고리 관리 · 예산 · 순자산 · 추이 차트 · 기간/연 결산(`/web/report`) · 거래 CSV 내보내기 · 반복 거래(KST 05:00 스케줄러) · 구독 플랜 티어(FREE/FAMILY/PRO, OWNER) · 관리자(멤버 목록 + 비번 재설정) 까지 SSR 로 구현 + 운영 배포.
+홈 · 거래(목록/입력/수정/soft-delete) · 영수증 AI 분석 · 카테고리 관리 · 예산 · 순자산 · 추이 차트 · 기간/연 결산(`/web/report`) · 거래 CSV 내보내기 · 반복 거래(KST 05:00 스케줄러) · 구독 플랜 티어(FREE/FAMILY/PRO, OWNER) · 가구 설정(OWNER 전용 — 멤버 목록 + 초대코드 발급/취소) 까지 SSR 로 구현 + 운영 배포.
 
 세부 작업 이력 / 백로그는 [`TODO.md`](TODO.md), 전체 설계는 [`docs/account.md`](docs/account.md) 참조.
 
@@ -32,7 +32,7 @@
 
 **Backend**: Java 21 (가상 스레드) · Spring Boot 3.3+ · MariaDB 11.x · Hibernate `@Filter` 기반 multi-tenant
 **Frontend**: Thymeleaf SSR · Bootstrap · Chart.js (서버 렌더 + 최소 JS, 세션 인증)
-**AI**: Claude Vision API (Sonnet 4.5, 가구별 가맹점 학습)
+**AI**: Claude Vision API (기본 모델 `claude-sonnet-4-6`, `ACCOUNT_CLAUDE_MODEL` 로 교체 가능 · 가구별 가맹점 학습)
 **Infra**: kyuhyeong.com VPS · nginx · Docker Compose · Let's Encrypt
 **CI/CD**: GitHub Actions
 
@@ -70,7 +70,8 @@ docker compose up -d
 # 2) 빌드
 ./gradlew build
 
-# 3) account-api 기동 (Flyway V1~V6 자동 적용 → 가구 2 + 카테고리 22/5 시드, 4계정 비번 dev1234!)
+# 3) account-api 기동 (Flyway V1~V9 자동 적용 → 가구 2 + 유저 4 + 카테고리 22/5 시드)
+#    비번 로그인은 없음(2026-06-02 카카오 전환) — 시드 계정은 application-secret.yml 의 account.dev.kakao-links 로 카카오 계정에 연결
 ./gradlew :account-api:bootRun
 
 # account-ai 단독 테스트

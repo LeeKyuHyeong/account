@@ -31,7 +31,7 @@ mkdir -p /var/lib/account/{mariadb,receipts}
 
 ## 2. 코드 복사
 
-저장소가 **private**(2026-09-12 전환)이라 서버는 **읽기 전용 Deploy key** 로 받는다. HTTPS clone/fetch 는 인증 없이 거부된다 — 2026-09-16 배포가 `git fetch` 에서 `could not read Username for 'https://github.com'` 로 실패해 확인. 원격 이름도 옛 `account-app` 이 아니라 `account` 로 맞춘다.
+서버는 **읽기 전용 Deploy key** 로 받는다. 저장소는 2026-09-12 private 전환 뒤 2026-09-16 히스토리 재작성을 거쳐 **public 으로 재전환**됐다 — Deploy key 절차는 private 시절(2026-09-16 배포가 `git fetch` 에서 `could not read Username for 'https://github.com'` 로 실패)에 도입했고 public 에서도 그대로 동작하므로 바꾸지 않는다. 원격 이름도 옛 `account-app` 이 아니라 `account` 로 맞춘다.
 
 ```bash
 # 1) 서버 키 — 기존 ~/.ssh/account_app_deploy 재사용. 없으면 생성
